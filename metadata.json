@@ -1,0 +1,9 @@
+
+{
+  "name": "Hamouda Photography",
+  "description": "Professional photography portfolio and booking platform for Hamdi Hamouda, featuring an AI-powered Tunisian assistant and full admin management.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Scanni ay file f-west el folder el kbir mte3i */
+@source "./**/*.{tsx,ts,jsx,js,html}";
+
+@theme {
+  /* Khallih feregh */
+}
+
+/* Force Dark Strategy */
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply bg-white text-black dark:bg-black dark:text-white transition-colors duration-300;
+  }
+}
