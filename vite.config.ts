@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'; // <--- 1. Zid el Import hedha
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      publicDir: 'public',
       server: {
         port: 3000,
         host: '0.0.0.0',
