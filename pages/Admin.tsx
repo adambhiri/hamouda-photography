@@ -54,6 +54,7 @@ const SettingsView = ({ packs, bookings, slides, contact, users }: AdminProps) =
     const [syncing, setSyncing] = useState(false);
 
     const exportData = () => {
+        console.log("Current Packs:", packs);
         const fullData = { packs, bookings, slides, contact, users, exportDate: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -63,28 +64,38 @@ const SettingsView = ({ packs, bookings, slides, contact, users }: AdminProps) =
         a.click();
     };
 
-    const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const importData = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const json = JSON.parse(event.target?.result as string);
-                if (confirm("Hedha bech y-badel el data el kol. T-7eb t-kommel?")) {
-                    storage.save(STORAGE_KEYS.PACKS, json.packs);
-                    storage.save(STORAGE_KEYS.BOOKINGS, json.bookings);
-                    storage.save(STORAGE_KEYS.SLIDES, json.slides);
-                    storage.save(STORAGE_KEYS.CONTACT, json.contact);
-                    storage.save(STORAGE_KEYS.USERS, json.users);
-                    window.location.reload();
-                }
-            } catch (err) {
-                alert("Fichier mouch s7i7! Vérifiez aussi les politiques RLS.");
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const json = JSON.parse(event.target?.result as string);
+            if (confirm("Hedha bech y-badel el DATA fil-Cloud (Supabase). T-7eb t-kommel?")) {
+                setSyncing(true);
+                
+                // Uploudi kol chay lel Supabase
+                await Promise.all([
+                    db.savePacks(json.packs || []),
+                    db.saveBookings(json.bookings || []),
+                    db.saveSlides(json.slides || []),
+                    db.saveContact(json.contact || contact),
+                    // users dima khalliha manual lel security
+                ]);
+
+                alert("Data Importée et Synchronisée m'a el Cloud!");
+                window.location.reload();
             }
-        };
-        reader.readAsText(file);
+        } catch (err) {
+            console.error(err);
+            alert("Erreur f-el-import! Thabbet f-el-fichier walla f-el-connexion.");
+        } finally {
+            setSyncing(false);
+        }
     };
+    reader.readAsText(file);
+};
 
     return (
         <div className="space-y-12 text-black dark:text-white transition-colors">
