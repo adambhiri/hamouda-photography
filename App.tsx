@@ -10,91 +10,118 @@ import PublicCalendar from './pages/PublicCalendar';
 import ChatBot from './components/ChatBot';
 import { Pack, Booking, Slide, ContactInfo, User, PortfolioItem } from './types';
 import { db } from './services/supabaseService';
-import { LogOut, User as UserIcon, ShieldCheck, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { LogOut, User as UserIcon, ShieldCheck, Calendar as CalendarIcon, Loader2 , X , Menu } from 'lucide-react';
 import { supabase } from './services/supabaseService'; // ZID EL IMPORT HEDHA
 
 
-// --- REFACTORED NAVBAR ---
-const Navbar: React.FC<{ user: User | null, onLogout: () => void }> = ({ user, onLogout }) => {
+const Navbar: React.FC<{ user: any, onLogout: () => void }> = ({ user, onLogout }) => {
     const location = useLocation();
     const isAdminPage = location.pathname.startsWith('/admin');
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-   useEffect(() => {
-    const savedTheme = localStorage.getItem('color-theme');
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
-        document.documentElement.style.colorScheme = 'dark';
-    } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
-        document.documentElement.style.colorScheme = 'light';
-    }
-}, []);
+    // Sync Dark Mode
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('color-theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+            setIsDarkMode(true);
+            document.documentElement.classList.add('dark');
+        }
+    }, []);
 
     const toggleTheme = () => {
-    if (isDarkMode) {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.style.colorScheme = 'light'; // <--- Zid hedhi
-        localStorage.setItem('color-theme', 'light');
-        setIsDarkMode(false);
-    } else {
-        document.documentElement.classList.add('dark');
-        document.documentElement.style.colorScheme = 'dark'; // <--- Zid hedhi
-        localStorage.setItem('color-theme', 'dark');
-        setIsDarkMode(true);
-    }
-};
+        if (isDarkMode) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('color-theme', 'light');
+            setIsDarkMode(false);
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('color-theme', 'dark');
+            setIsDarkMode(true);
+        }
+    };
+
     if (isAdminPage) return null;
 
+    const navLinks = [
+        { name: 'Accueil', path: '/' },
+        { name: 'Portfolio', path: '/portfolio' },
+        { name: 'Packs', path: '/packs' },
+        { name: 'Disponibilité', path: '/calendar', icon: <CalendarIcon size={12} /> },
+        { name: 'Contact', path: '/contact' },
+    ];
+
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-black/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 text-black dark:text-white transition-colors duration-300">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-black/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 text-black dark:text-white transition-all">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                <Link to="/" className="text-2xl font-serif tracking-tighter hover:opacity-80 transition">
+                
+                {/* LOGO */}
+                <Link to="/" className="text-xl md:text-2xl font-serif tracking-tighter hover:opacity-80 transition z-50">
                     HAMOUDA PHOTOGRAPHY
                 </Link>
-                <div className="hidden md:flex space-x-8 uppercase text-[10px] tracking-widest font-bold text-zinc-600 dark:text-zinc-400">
-                    <Link to="/" className="hover:text-black dark:hover:text-white transition">Accueil</Link>
-                    <Link to="/portfolio" className="hover:text-black dark:hover:text-white transition">Portfolio</Link>
-                    <Link to="/packs" className="hover:text-black dark:hover:text-white transition">Packs</Link>
-                    <Link to="/calendar" className="hover:text-black dark:hover:text-white transition flex items-center gap-1"><CalendarIcon size={12} /> Disponibilité</Link>
-                    <Link to="/contact" className="hover:text-black dark:hover:text-white transition">Contact</Link>
+
+                {/* DESKTOP MENU (Hidden on Mobile/Tablet) */}
+                <div className="hidden lg:flex space-x-8 uppercase text-[10px] tracking-widest font-bold text-zinc-600 dark:text-zinc-400">
+                    {navLinks.map((link) => (
+                        <Link key={link.path} to={link.path} className="hover:text-black dark:hover:text-white transition flex items-center gap-1">
+                            {link.icon} {link.name}
+                        </Link>
+                    ))}
                 </div>
 
-                <div className="flex items-center space-x-4">
-                    <button
-                        onClick={toggleTheme}
-                        className="text-zinc-500 hover:text-black dark:hover:text-white transition p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    >
-                        {isDarkMode ? (
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 5.05A1 1 0 016.465 3.636l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM5 11a1 1 0 100-2H4a1 1 0 100 2h1zM8 15a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm0-12a1 1 0 011 1v1a1 1 0 11-2 0V4a1 1 0 011-1z"></path></svg>
-                        ) : (
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-                        )}
+                {/* RIGHT SECTION (Theme + Admin + Hamburger) */}
+                <div className="flex items-center space-x-2 md:space-x-4">
+                    <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
+                        {isDarkMode ? '☀️' : '🌙'}
                     </button>
 
                     {user ? (
-                        <div className="flex items-center space-x-4">
-                            {user.role === 'admin' && (
-                                <Link to="/admin" className="text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white flex items-center gap-1">
-                                    <ShieldCheck size={18} />
-                                    <span className="hidden sm:inline uppercase text-[9px] tracking-widest font-bold">Admin</span>
-                                </Link>
-                            )}
-                            <div className="flex items-center space-x-2 text-xs font-bold bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 text-black dark:text-white">
-                                <UserIcon size={14} className="text-zinc-500" />
-                                <span className="hidden sm:inline">{user.name}</span>
-                            </div>
-                            <button onClick={onLogout} className="text-zinc-500 hover:text-red-500 transition-colors">
-                                <LogOut size={18} />
-                            </button>
+                        <div className="flex items-center space-x-2 md:space-x-4">
+                            <Link to="/admin" className="text-zinc-500 dark:text-zinc-400 hover:text-black"><ShieldCheck size={20}/></Link>
+                            <button onClick={onLogout} className="text-zinc-500 hover:text-red-500"><LogOut size={20}/></button>
                         </div>
                     ) : (
-                        <Link to="/login" className="text-[10px] bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-sm font-bold uppercase tracking-widest hover:opacity-80 transition">
-                            Connexion
+                        /* El Bouton Connexion na7ineha mel Desktop - t-najem t-khalliha ken t-heb */
+                        null 
+                    )}
+
+                    {/* HAMBURGER ICON (Visible on Mobile & Tablet) */}
+                    <button 
+                        className="lg:hidden z-50 p-2 text-zinc-600 dark:text-zinc-400"
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    >
+                        {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                    </button>
+                </div>
+            </div>
+
+            {/* MOBILE & TABLET OVERLAY MENU */}
+            <div className={`
+                fixed inset-0 bg-white dark:bg-black z-40 flex flex-col items-center justify-center space-y-8 transition-transform duration-500 ease-in-out
+                ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+                lg:hidden
+            `}>
+                <div className="flex flex-col items-center space-y-6 text-center">
+                    {navLinks.map((link) => (
+                        <Link 
+                            key={link.path} 
+                            to={link.path} 
+                            onClick={() => setIsMenuOpen(false)}
+                            className="text-2xl uppercase tracking-[0.3em] font-light hover:text-zinc-500 transition"
+                        >
+                            {link.name}
+                        </Link>
+                    ))}
+                    
+                    {/* Secret Admin Link in Mobile Menu (Optional) */}
+                    {!user && (
+                        <Link 
+                            to="/login" 
+                            onClick={() => setIsMenuOpen(false)}
+                            className="mt-10 text-[10px] text-zinc-400 uppercase tracking-widest"
+                        >
+                            Espace Photographe
                         </Link>
                     )}
                 </div>
@@ -102,7 +129,6 @@ const Navbar: React.FC<{ user: User | null, onLogout: () => void }> = ({ user, o
         </nav>
     );
 };
-
 function App() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<User | null>(null);
