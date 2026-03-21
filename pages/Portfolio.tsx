@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { PORTFOLIO_ITEMS } from '../constants';
 import { PortfolioItem } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, X, Maximize2 } from 'lucide-react';
@@ -8,11 +7,11 @@ interface Props {
   items?: PortfolioItem[];
 }
 
-const Portfolio: React.FC<Props> = ({ items = PORTFOLIO_ITEMS }) => {
+const Portfolio: React.FC<Props> = ({ items = [] }) => {
   const [filter, setFilter] = useState('All');
   const [activeItem, setActiveItem] = useState<PortfolioItem | null>(null);
 
-  const displayItems = items.length > 0 ? items : PORTFOLIO_ITEMS;
+  const displayItems = items.length > 0 ? items : [];
   const categories = ['All', ...new Set(displayItems.map(img => img.category))];
   
   const filteredItems = filter === 'All'
