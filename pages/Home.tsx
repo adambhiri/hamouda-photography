@@ -46,7 +46,7 @@ const Home: React.FC<Props> = ({ slides, packs }) => {
           className="order-1 md:order-2"
         >
           <img
-            src="/images/hero-image.png "
+            src="./public/images/hero-image.png "
             alt="Hamdi at work"
             className="w-full grayscale hover:grayscale-0 transition-all duration-700 rounded-sm shadow-2xl"
           />
