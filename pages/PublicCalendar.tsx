@@ -4,13 +4,11 @@ import {
   ChevronRight, 
   CalendarDays, 
   Clock, 
-  X, 
-  Send, 
-  CheckCircle2 
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Booking } from '../types'; 
-
+import { Link } from 'react-router-dom';
 interface Props {
   bookings: Booking[];
   setChatOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -32,106 +30,119 @@ const PublicCalendar: React.FC<Props> = ({ bookings, setChatOpen }) => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-24 space-y-20 transition-colors">
+    <div className="max-w-6xl mx-auto px-4 md:px-6 py-12 md:py-24 space-y-12 md:space-y-20 transition-colors">
+      
       {/* Hero Section */}
-      <div className="text-center space-y-6">
+      <div className="text-center space-y-4 md:space-y-6">
         <motion.h1 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="text-6xl md:text-7xl font-serif tracking-tight text-black dark:text-white"
+          className="text-4xl md:text-7xl font-serif tracking-tight text-black dark:text-white"
         >
           Disponibilité
         </motion.h1>
-        <p className="text-zinc-400 tracking-[0.4em] uppercase text-[10px] font-black">Planifiez votre session en toute simplicité</p>
+        <p className="text-zinc-400 tracking-[0.2em] md:tracking-[0.4em] uppercase text-[8px] md:text-[10px] font-black">
+          Planifiez votre session en toute simplicité
+        </p>
       </div>
 
       {/* Main Calendar Card */}
-      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] overflow-hidden shadow-2xl relative">
-        <div className="bg-zinc-50 dark:bg-zinc-900/50 p-10 flex flex-col md:flex-row items-center justify-between border-b border-zinc-200 dark:border-zinc-800 gap-8">
-          <div className="flex items-center gap-6">
-            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-4 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:scale-110 active:scale-90 transition-all text-black dark:text-white shadow-sm"><ChevronLeft size={20}/></button>
-            <h2 className="text-3xl font-serif min-w-[220px] text-center capitalize text-black dark:text-white">{monthName} <span className="text-zinc-400 font-light">{year}</span></h2>
-            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-4 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:scale-110 active:scale-90 transition-all text-black dark:text-white shadow-sm"><ChevronRight size={20}/></button>
+      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] md:rounded-[3rem] overflow-hidden shadow-xl relative">
+        
+        {/* Header du Calendrier */}
+        <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 md:p-10 flex flex-col md:flex-row items-center justify-between border-b border-zinc-200 dark:border-zinc-800 gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
+            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-3 md:p-4 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl hover:scale-105 transition-all text-black dark:text-white shadow-sm"><ChevronLeft size={18}/></button>
+            <h2 className="text-xl md:text-3xl font-serif min-w-[150px] md:min-w-[220px] text-center capitalize text-black dark:text-white">
+              {monthName} <span className="text-zinc-400 font-light">{year}</span>
+            </h2>
+            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-3 md:p-4 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl hover:scale-105 transition-all text-black dark:text-white shadow-sm"><ChevronRight size={18}/></button>
           </div>
           
-          <div className="flex gap-8 text-[9px] font-black uppercase tracking-[0.2em]">
-            <div className="flex items-center gap-3 text-zinc-400"><div className="w-2 h-2 rounded-full border border-zinc-300 dark:border-zinc-600"></div> <span>Disponible</span></div>
-            <div className="flex items-center gap-3 text-black dark:text-white"><div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div> <span>Réservé</span></div>
+          <div className="flex gap-6 text-[8px] md:text-[9px] font-black uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-zinc-400"><div className="w-2 h-2 rounded-full border border-zinc-300 dark:border-zinc-600"></div> <span>Libre</span></div>
+            <div className="flex items-center gap-2 text-black dark:text-white"><div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div> <span>Complet</span></div>
           </div>
         </div>
 
-        <div className="p-10">
-          <div className="grid grid-cols-7 gap-3 text-center text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] mb-8">
-            {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(d => <div key={d}>{d}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-3">
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} className="h-28 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/10"></div>)}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const dStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-              const dayBookings = bookings.filter(b => b.date === dStr);
-              const isOccupied = dayBookings.length > 0;
-              const isSelected = selectedDate === dStr;
-              
-              return (
-                <motion.div 
-                  whileHover={{ y: -5 }}
-                  key={day} 
-                  onClick={() => setSelectedDate(dStr)}
-                  className={`h-28 border rounded-[1.5rem] p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer relative group ${
-                    isOccupied 
-                    ? 'bg-black dark:bg-white border-black dark:border-white text-white dark:text-black shadow-lg' 
-                    : 'bg-white dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800 text-zinc-300 dark:text-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500 hover:text-black dark:hover:text-white'
-                  } ${isSelected ? 'ring-2 ring-black dark:ring-white ring-offset-4 dark:ring-offset-black scale-[1.05] z-10' : ''}`}
-                >
-                  <span className={`text-sm font-black ${isOccupied ? '' : 'group-hover:text-black dark:group-hover:text-white'}`}>{day}</span>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-60">
-                       {isOccupied ? 'Occupé' : 'Libre'}
-                    </span>
-                    {isOccupied ? <X size={12} strokeWidth={3} /> : <div className="w-1 h-1 rounded-full bg-current opacity-20"></div>}
-                  </div>
-                </motion.div>
-              );
-            })}
+        {/* Grid des Jours */}
+        <div className="p-4 md:p-10 overflow-x-auto">
+          <div className="min-w-[600px] md:min-w-full"> {/* Force minimum width on mobile for readability */}
+            <div className="grid grid-cols-7 gap-1 md:gap-3 text-center text-[8px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4 md:mb-8">
+              {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(d => <div key={d}>{d}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-1 md:gap-3">
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-16 md:h-28 rounded-xl md:rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/10 opacity-30"></div>
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const dStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                const dayBookings = bookings.filter(b => b.date === dStr);
+                const isOccupied = dayBookings.length > 0;
+                const isSelected = selectedDate === dStr;
+                
+                return (
+                  <motion.div 
+                    whileHover={{ y: -3 }}
+                    key={day} 
+                    onClick={() => setSelectedDate(dStr)}
+                    className={`h-16 md:h-28 border rounded-lg md:rounded-[1.5rem] p-2 md:p-5 flex flex-col justify-between transition-all cursor-pointer relative ${
+                      isOccupied 
+                      ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-black' 
+                      : 'bg-white dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800 text-zinc-400 hover:border-zinc-400 hover:text-black dark:hover:text-white'
+                    } ${isSelected ? 'ring-2 ring-black dark:ring-white ring-offset-2 scale-105 z-10 shadow-lg' : ''}`}
+                  >
+                    <span className="text-xs md:text-sm font-black">{day}</span>
+                    <div className="hidden md:flex justify-between items-center">
+                      <span className="text-[7px] font-black uppercase tracking-widest opacity-60">
+                         {isOccupied ? 'Occupé' : 'Libre'}
+                      </span>
+                    </div>
+                    {isOccupied && <div className="absolute top-1 right-1 md:hidden w-1 h-1 bg-white dark:bg-black rounded-full"></div>}
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Details Section for Selected Date */}
+      {/* Détails du jour sélectionné */}
       <AnimatePresence mode="wait">
         {selectedDate ? (
           <motion.div 
             key={selectedDate}
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-            className="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] p-12 space-y-12 shadow-inner"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+            className="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] md:rounded-[3rem] p-6 md:p-12 space-y-8 md:space-y-12 shadow-inner"
           >
-            <div className="flex justify-between items-start">
-              <div className="space-y-3">
-                <p className="text-zinc-500 uppercase tracking-[0.3em] text-[10px] font-black flex items-center gap-3">
-                  <CalendarDays size={14} className="text-black dark:text-white" /> Créneaux horaires
+            <div className="flex justify-between items-start gap-4">
+              <div className="space-y-2">
+                <p className="text-zinc-500 uppercase tracking-widest text-[8px] md:text-[10px] font-black flex items-center gap-2">
+                  <CalendarDays size={12} className="text-black dark:text-white" /> Créneaux horaires
                 </p>
-                <h3 className="text-4xl font-serif text-black dark:text-white">
+                <h3 className="text-xl md:text-4xl font-serif text-black dark:text-white capitalize">
                   {new Date(selectedDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </h3>
               </div>
-              <button onClick={() => setSelectedDate(null)} className="p-4 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-full text-zinc-400 hover:text-black dark:hover:text-white transition-all shadow-sm"><X size={20}/></button>
+              <button onClick={() => setSelectedDate(null)} className="p-3 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-full text-zinc-400 hover:text-black dark:hover:text-white transition-all"><X size={18}/></button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+            {/* Time Slots Responsive Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4">
               {timeSlots.map(time => {
                 const isBooked = bookings.find(b => b.date === selectedDate && b.time === time);
                 return (
                   <div 
                     key={time} 
-                    className={`group p-6 rounded-[2rem] border text-center space-y-3 transition-all duration-500 ${
+                    className={`p-4 md:p-6 rounded-2xl border text-center space-y-2 transition-all ${
                       isBooked 
-                      ? 'bg-zinc-200 dark:bg-zinc-800/50 border-transparent text-zinc-400 dark:text-zinc-600 grayscale pointer-events-none' 
-                      : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-black dark:hover:border-white hover:shadow-xl'
+                      ? 'bg-zinc-200 dark:bg-zinc-800/50 border-transparent text-zinc-400 dark:text-zinc-600' 
+                      : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-black dark:hover:border-white'
                     }`}
                   >
-                    <Clock size={14} className={`mx-auto ${isBooked ? 'opacity-20' : 'text-zinc-300 dark:text-zinc-700 group-hover:text-black dark:group-hover:text-white transition-colors'}`} />
-                    <p className="text-sm font-black">{time}</p>
-                    <p className="text-[8px] uppercase tracking-[0.2em] font-black opacity-40">
+                    <Clock size={12} className="mx-auto opacity-30" />
+                    <p className="text-xs md:text-sm font-black">{time}</p>
+                    <p className="text-[7px] uppercase tracking-widest font-black opacity-40">
                       {isBooked ? 'Réservé' : 'Libre'}
                     </p>
                   </div>
@@ -139,37 +150,34 @@ const PublicCalendar: React.FC<Props> = ({ bookings, setChatOpen }) => {
               })}
             </div>
 
-           <div className="pt-10 border-t border-zinc-200 dark:border-zinc-800 flex flex-col lg:flex-row items-center justify-between gap-10">
-   <p className="text-zinc-500 text-sm font-medium max-w-2xl text-center lg:text-left leading-relaxed">
-     Un créneau est libre ? Vous pouvez envoyer une demande de réservation via notre assistant AI ou nous contacter directement par téléphone.
-   </p>
-   <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-     
-     <a 
-       href="#/contact" 
-       className="dark:bg-zinc-800 bg-zinc-300 dark:text-white text-zinc-900 px-8 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest dark:hover:bg-zinc-700 hover:bg-zinc-400 transition text-center flex items-center justify-center"
-     >
-       Contact Direct
-     </a>
-     
-     <button 
-       onClick={() => setChatOpen(true)} 
-       className="dark:bg-white bg-zinc-900 dark:text-black text-white px-8 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest dark:hover:bg-zinc-200 hover:bg-zinc-600 transition flex items-center justify-center"
-     >
-       Demander à l'AI
-     </button>
-   </div>
-</div>
+            {/* Call to Action Section */}
+            <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col lg:flex-row items-center justify-between gap-8">
+              <p className="text-zinc-500 text-xs md:text-sm font-medium max-w-xl text-center lg:text-left leading-relaxed">
+                Un créneau est libre ? Envoyez une demande via l'AI ou contactez-nous directement.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Link 
+                  to="/contact" 
+                  className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-6 py-4 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-zinc-300 dark:hover:bg-zinc-700 transition text-center"
+                >
+                  Contact Direct
+                </Link>
+                <button 
+                  onClick={() => setChatOpen(true)} 
+                  className="bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-full text-[9px] font-bold uppercase tracking-widest hover:opacity-80 transition text-center"
+                >
+                  Demander à l'AI
+                </button>
+              </div>
+            </div>
           </motion.div>
         ) : (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="text-center py-16 bg-zinc-50 dark:bg-zinc-900/20 border border-zinc-200 dark:border-zinc-800 border-dashed rounded-[3rem]"
+            className="text-center py-12 md:py-20 bg-zinc-50 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-800 border-dashed rounded-[1.5rem] md:rounded-[3rem]"
           >
-            <div className="w-16 h-16 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-              <CalendarDays className="text-zinc-300" size={24} />
-            </div>
-            <p className="text-zinc-400 text-sm font-serif italic">Veuillez sélectionner une date pour afficher les disponibilités horaires.</p>
+            <CalendarDays className="text-zinc-200 dark:text-zinc-800 mx-auto mb-4" size={32} />
+            <p className="text-zinc-400 text-xs md:text-sm font-serif italic px-6">Sélectionnez une date pour voir les horaires.</p>
           </motion.div>
         )}
       </AnimatePresence>

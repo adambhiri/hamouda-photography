@@ -10,123 +10,125 @@ import PublicCalendar from './pages/PublicCalendar';
 import ChatBot from './components/ChatBot';
 import { Pack, Booking, Slide, ContactInfo, User, PortfolioItem } from './types';
 import { db } from './services/supabaseService';
-import { LogOut, User as UserIcon, ShieldCheck, Calendar as CalendarIcon, Loader2 , X , Menu } from 'lucide-react';
+import { LogOut, User as UserIcon, ShieldCheck, Calendar as CalendarIcon, Loader2 , X , Menu , Camera , Package , Mail , Home as LucideHome , Sun , Moon} from 'lucide-react';
 import { supabase } from './services/supabaseService'; // ZID EL IMPORT HEDHA
 
 
 const Navbar: React.FC<{ user: any, onLogout: () => void }> = ({ user, onLogout }) => {
     const location = useLocation();
-    const isAdminPage = location.pathname.startsWith('/admin');
-    const [isDarkMode, setIsDarkMode] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        // Init m'al localStorage walla system preference
+        return document.documentElement.classList.contains('dark');
+    });
 
-    // Sync Dark Mode
-    useEffect(() => {
-        const savedTheme = localStorage.getItem('color-theme');
-        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
-            setIsDarkMode(true);
-            document.documentElement.classList.add('dark');
-        }
-    }, []);
-
+    // Toggle Logic
     const toggleTheme = () => {
-        if (isDarkMode) {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('color-theme', 'light');
-            setIsDarkMode(false);
-        } else {
+        const newMode = !isDarkMode;
+        setIsDarkMode(newMode);
+        if (newMode) {
             document.documentElement.classList.add('dark');
-            localStorage.setItem('color-theme', 'dark');
-            setIsDarkMode(true);
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
         }
     };
 
-    if (isAdminPage) return null;
+    // Toggle Menu Lock Scroll
+    useEffect(() => {
+        if (isMenuOpen) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = 'unset';
+    }, [isMenuOpen]);
 
     const navLinks = [
-        { name: 'Accueil', path: '/' },
-        { name: 'Portfolio', path: '/portfolio' },
-        { name: 'Packs', path: '/packs' },
-        { name: 'Disponibilité', path: '/calendar', icon: <CalendarIcon size={12} /> },
-        { name: 'Contact', path: '/contact' },
+        { name: 'Accueil', path: '/', icon: <LucideHome size={18} /> },
+        { name: 'Portfolio', path: '/portfolio', icon: <Camera size={18} /> },
+        { name: 'Packs', path: '/packs', icon: <Package size={18} /> },
+        { name: 'Disponibilité', path: '/calendar', icon: <CalendarIcon size={18} /> },
+        { name: 'Contact', path: '/contact', icon: <Mail size={18} /> },
     ];
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-black/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 text-black dark:text-white transition-all">
-            <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                
-                {/* LOGO */}
-                <Link to="/" className="text-xl md:text-2xl font-serif tracking-tighter hover:opacity-80 transition z-50">
-                    HAMOUDA PHOTOGRAPHY
-                </Link>
-
-                {/* DESKTOP MENU (Hidden on Mobile/Tablet) */}
-                <div className="hidden lg:flex space-x-8 uppercase text-[10px] tracking-widest font-bold text-zinc-600 dark:text-zinc-400">
-                    {navLinks.map((link) => (
-                        <Link key={link.path} to={link.path} className="hover:text-black dark:hover:text-white transition flex items-center gap-1">
-                            {link.icon} {link.name}
-                        </Link>
-                    ))}
-                </div>
-
-                {/* RIGHT SECTION (Theme + Admin + Hamburger) */}
-                <div className="flex items-center space-x-2 md:space-x-4">
-                    <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
-                        {isDarkMode ? '☀️' : '🌙'}
-                    </button>
-
-                    {user ? (
-                        <div className="flex items-center space-x-2 md:space-x-4">
-                            <Link to="/admin" className="text-zinc-500 dark:text-zinc-400 hover:text-black"><ShieldCheck size={20}/></Link>
-                            <button onClick={onLogout} className="text-zinc-500 hover:text-red-500"><LogOut size={20}/></button>
-                        </div>
-                    ) : (
-                        /* El Bouton Connexion na7ineha mel Desktop - t-najem t-khalliha ken t-heb */
-                        null 
-                    )}
-
-                    {/* HAMBURGER ICON (Visible on Mobile & Tablet) */}
-                    <button 
-                        className="lg:hidden z-50 p-2 text-zinc-600 dark:text-zinc-400"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
-                    </button>
-                </div>
-            </div>
-
-            {/* MOBILE & TABLET OVERLAY MENU */}
-            <div className={`
-                fixed inset-0 bg-white dark:bg-black z-40 flex flex-col items-center justify-center space-y-8 transition-transform duration-500 ease-in-out
-                ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}
-                lg:hidden
-            `}>
-                <div className="flex flex-col items-center space-y-6 text-center">
-                    {navLinks.map((link) => (
-                        <Link 
-                            key={link.path} 
-                            to={link.path} 
-                            onClick={() => setIsMenuOpen(false)}
-                            className="text-2xl uppercase tracking-[0.3em] font-light hover:text-zinc-500 transition"
-                        >
-                            {link.name}
-                        </Link>
-                    ))}
+        <>
+            <nav className="fixed top-0 left-0 right-0 z-[60] bg-white/80 dark:bg-black/80 backdrop-blur-lg border-b border-zinc-100 dark:border-zinc-900 transition-colors duration-300">
+                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     
-                    {/* Secret Admin Link in Mobile Menu (Optional) */}
-                    {!user && (
-                        <Link 
-                            to="/login" 
-                            onClick={() => setIsMenuOpen(false)}
-                            className="mt-10 text-[10px] text-zinc-400 uppercase tracking-widest"
+                    {/* LOGO */}
+                    <Link to="/" onClick={() => setIsMenuOpen(false)} className="text-lg md:text-xl font-serif tracking-[0.2em] z-[70] dark:text-white text-black">
+                        HAMOUDA <span className="font-light opacity-60">PHOTOGRAPHY</span>
+                    </Link>
+
+                    {/* DESKTOP LINKS & THEME (Visible only on LG screens) */}
+                    <div className="hidden lg:flex items-center space-x-8 uppercase text-[10px] tracking-[0.2em] font-bold text-zinc-500">
+                        {navLinks.map((link) => (
+                            <Link key={link.path} to={link.path} className={`hover:text-black dark:hover:text-white transition-colors ${location.pathname === link.path ? 'text-black dark:text-white' : ''}`}>
+                                {link.name}
+                            </Link>
+                        ))}
+                        
+                        {/* Theme Toggle Desktop */}
+                        <button onClick={toggleTheme} className="p-2 ml-4 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-full transition-colors text-zinc-900 dark:text-white">
+                            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                        </button>
+                    </div>
+
+                    {/* ACTIONS (Mobile Theme + Menu Toggle) */}
+                    <div className="flex items-center gap-2">
+                        {/* Theme Toggle Mobile Header (Optional, kept for quick access) */}
+                        <button onClick={toggleTheme} className="lg:hidden p-2 text-zinc-900 dark:text-white z-[70]">
+                             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                        </button>
+
+                        <button 
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="lg:hidden p-2 text-zinc-900 dark:text-white z-[70]"
                         >
-                            Espace Photographe
-                        </Link>
-                    )}
+                            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            {/* MOBILE MENU OVERLAY */}
+            <div className={`fixed inset-0 z-[50] lg:hidden transition-all duration-500 ${isMenuOpen ? 'visible' : 'invisible'}`}>
+                <div className={`absolute inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm transition-opacity duration-500 ${isMenuOpen ? 'opacity-100' : 'opacity-0'}`} onClick={() => setIsMenuOpen(false)} />
+                
+                <div className={`absolute top-0 right-0 w-[80%] max-w-sm h-full bg-white dark:bg-zinc-950 shadow-2xl p-10 flex flex-col transition-transform duration-500 ease-out ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                    <div className="mt-20 flex flex-col space-y-8">
+                        {navLinks.map((link) => (
+                            <Link 
+                                key={link.path} 
+                                to={link.path} 
+                                onClick={() => setIsMenuOpen(false)}
+                                className="flex items-center gap-4 text-sm uppercase tracking-[0.3em] font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all"
+                            >
+                                <span className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full">{link.icon}</span>
+                                {link.name}
+                            </Link>
+                        ))}
+                    </div>
+
+                    <div className="mt-auto border-t border-zinc-100 dark:border-zinc-900 pt-8 flex flex-col gap-6">
+                        {/* Extra Action fil-Mobile: Theme info */}
+                        <p className="text-[8px] uppercase tracking-[0.4em] text-zinc-400 text-center">
+                            Mode {isDarkMode ? 'Sombre' : 'Clair'} Activé
+                        </p>
+
+                        {!user && (
+                            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="text-[10px] uppercase tracking-widest text-zinc-400 hover:text-black dark:hover:text-white text-center">
+                                Espace Client / Admin
+                            </Link>
+                        )}
+                        {user && (
+                            <button onClick={() => {onLogout(); setIsMenuOpen(false);}} className="text-red-500 text-[10px] uppercase font-bold tracking-widest">
+                                Déconnexion
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
-        </nav>
+        </>
     );
 };
 function App() {
@@ -227,7 +229,7 @@ if (c) setContact(c);
                     <main className="flex-grow pt-20">
                         <Routes>
                             <Route path="/" element={<Home slides={slides} packs={packs}  />} />
-                            <Route path="/portfolio" element={<Portfolio items={portfolioItems} />} />
+                            <Route path="/portfolio" element={<Portfolio />} />
                             <Route path="/packs" element={<Packs packs={packs} />} />
                             <Route path="/calendar" element={<PublicCalendar bookings={bookings} setChatOpen={setChatOpen} />} />
                             <Route path="/contact" element={<Contact contact={contact} user={user} />} />
