@@ -25,3 +25,4 @@ dist-ssr
 git rm --cached .env
 git add .gitignore
 git commit -m "chore: ignore env file"
+.env
