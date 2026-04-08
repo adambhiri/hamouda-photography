@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '../services/supabaseService'; // L'import s7i7
+import { supabase } from '../services/supabaseService'; 
 import { User } from '../types';
 
 interface Props {
@@ -20,7 +20,6 @@ const Login: React.FC<Props> = ({ setUser }) => {
     setLoading(true);
     setError('');
 
-    // 1. Authentification avec le "Bureau des Passeports"
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
@@ -32,52 +31,81 @@ const Login: React.FC<Props> = ({ setUser }) => {
       return;
     }
 
-    // 2. Si ça marche, on va au "Bureau de l'État Civil" pour chercher le rôle
-    console.log("✅ Authentification réussie. Recherche du profil...");
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('*') // On peut mettre 'id, name, email, role'
-      .eq('id', authData.user.id) // On cherche par l'ID du passeport
+      .select('*')
+      .eq('id', authData.user.id)
       .single();
 
     if (userError || !userData) {
-      console.error("🔴 ERREUR: Profil introuvable dans public.users", userError);
       setError("Login réussi, mais votre profil est introuvable. Contactez l'admin.");
-      await supabase.auth.signOut(); // On le déconnecte
+      await supabase.auth.signOut();
       setLoading(false);
       return;
     }
 
-    // 3. TOUT EST BON! On a le passeport ET le badge (rôle)
-    console.log("✅ Profil trouvé:", userData);
-    setUser(userData); // On met le user COMPLET (avec le rôle) dans App.tsx
+    setUser(userData);
     navigate(userData.role === 'admin' ? '/admin' : '/');
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-6">
+    <div className="min-h-[80vh] flex items-center justify-center px-6 bg-white dark:bg-black transition-colors duration-300">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-zinc-950 border border-zinc-900 p-12 space-y-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="max-w-md w-full bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-900 p-8 md:p-12 space-y-10 shadow-sm dark:shadow-none"
       >
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-serif">Bienvenue</h1>
-          <p className="text-zinc-500 text-xs uppercase tracking-widest">Connectez-vous pour continuer</p>
+        <div className="text-center space-y-3">
+          <h1 className="text-3xl md:text-4xl font-serif text-black dark:text-white italic">Bienvenue Hamdi</h1>
+          <p className="text-zinc-400 text-[10px] uppercase tracking-[0.3em] font-medium">Connectez-vous à votre studio</p>
         </div>
-        <form onSubmit={handleLogin} className="space-y-6">
-          {/* ... les inputs restent les mêmes ... */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-black border border-zinc-800 px-4 py-3 outline-none focus:border-white transition" />
+
+        <form onSubmit={handleLogin} className="space-y-8">
+          <div className="space-y-6">
+            <div className="space-y-2 group">
+              <label className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest group-focus-within:text-black dark:group-focus-within:text-white transition-colors">
+                Email Professionnel
+              </label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+                className="w-full bg-transparent border-b border-zinc-200 dark:border-zinc-800 px-0 py-2 outline-none focus:border-black dark:focus:border-white transition-all duration-300 text-black dark:text-white text-sm" 
+              />
+            </div>
+
+            <div className="space-y-2 group">
+              <label className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest group-focus-within:text-black dark:group-focus-within:text-white transition-colors">
+                Mot de Passe
+              </label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+                className="w-full bg-transparent border-b border-zinc-200 dark:border-zinc-800 px-0 py-2 outline-none focus:border-black dark:focus:border-white transition-all duration-300 text-black dark:text-white text-sm" 
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mot de passe</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full bg-black border border-zinc-800 px-4 py-3 outline-none focus:border-white transition" />
-          </div>
-          {error && <p className="text-center text-red-500 text-xs">{error}</p>}
-          <button type="submit" disabled={loading} className="w-full bg-white text-black py-4 font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 transition disabled:bg-zinc-600">
-            {loading ? "Connexion..." : "Se Connecter"}
+
+          {error && (
+            <motion.p 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              className="text-center text-red-500 text-[10px] uppercase tracking-wider font-bold"
+            >
+              {error}
+            </motion.p>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-4 font-bold uppercase tracking-[0.4em] text-[10px] hover:opacity-80 transition-all disabled:bg-zinc-200 dark:disabled:bg-zinc-800 disabled:text-zinc-400"
+          >
+            {loading ? "Vérification..." : "Se Connecter"}
           </button>
         </form>
       </motion.div>

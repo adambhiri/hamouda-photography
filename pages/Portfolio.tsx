@@ -3,13 +3,13 @@ import { PortfolioItem } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, X, Maximize2, Loader2 } from 'lucide-react';
 import { db } from '../services/supabaseService'; // Thabbet mel path hedha
-
+import { useLocation } from 'react-router-dom';
 const Portfolio: React.FC = () => {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [activeItem, setActiveItem] = useState<PortfolioItem | null>(null);
-
+  const location = useLocation();
   // --- Fetching Data mel Supabase ---
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -17,10 +17,18 @@ const Portfolio: React.FC = () => {
       const data = await db.getPortfolio();
       setItems(data);
       setLoading(false);
+
+      // Na9raw el category mel URL Search Params (e.g. ?category=Wedding)
+      const queryParams = new URLSearchParams(location.search);
+      const categoryParam = queryParams.get('category');
+
+      if (categoryParam) {
+        setFilter(categoryParam);
+      }
     };
 
     fetchPortfolio();
-  }, []);
+  }, [location.search]);
 
   const categories = ['All', ...new Set(items.map(img => img.category))];
   

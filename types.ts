@@ -23,13 +23,15 @@ export interface Booking {
   time?: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   pack_id?: string; // Salla7na hethi
-  description?: string;
+  description?: string; 
+  team: string;
+  priceOverride?: string;
 }
 
 export type PortfolioType = 'image' | 'video';
 
 export interface PortfolioItem {
-  id: string;
+  id: number;
   url: string;
   thumbnail?: string;
   category: string;
@@ -52,3 +54,4 @@ export interface ContactInfo {
   facebook: string;
   email: string;
 }
+

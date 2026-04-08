@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Booking } from '../types'; 
 import { Link } from 'react-router-dom';
+
 interface Props {
   bookings: Booking[];
   setChatOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -60,13 +61,21 @@ const PublicCalendar: React.FC<Props> = ({ bookings, setChatOpen }) => {
           
           <div className="flex gap-6 text-[8px] md:text-[9px] font-black uppercase tracking-widest">
             <div className="flex items-center gap-2 text-zinc-400"><div className="w-2 h-2 rounded-full border border-zinc-300 dark:border-zinc-600"></div> <span>Libre</span></div>
-            <div className="flex items-center gap-2 text-black dark:text-white"><div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div> <span>Complet</span></div>
+            <div className="flex items-center gap-2 text-orange-500">
+                <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]"></div>
+                <span>Semi-Occupé</span>
+            </div>
+            {/* HETHI EL KEY: Complet (Ahmer) */}
+            <div className="flex items-center gap-2 text-red-500">
+                <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.4)]"></div> 
+                <span>Complet</span>
+            </div>
           </div>
         </div>
 
         {/* Grid des Jours */}
         <div className="p-4 md:p-10 overflow-x-auto">
-          <div className="min-w-[600px] md:min-w-full"> {/* Force minimum width on mobile for readability */}
+          <div className="min-w-[600px] md:min-w-full">
             <div className="grid grid-cols-7 gap-1 md:gap-3 text-center text-[8px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4 md:mb-8">
               {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(d => <div key={d}>{d}</div>)}
             </div>
@@ -77,28 +86,54 @@ const PublicCalendar: React.FC<Props> = ({ bookings, setChatOpen }) => {
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
                 const dStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                const dayBookings = bookings.filter(b => b.date === dStr);
-                const isOccupied = dayBookings.length > 0;
-                const isSelected = selectedDate === dStr;
                 
+                // 1. Thabbet ken el nhar msaker mel admin
+                const isClosed = bookings.some(b => b.date === dStr && b.status === 'cancelled' && b.clientName === '--- JOURNÉE CLÔTURÉE ---');
+                
+                // 2. Nehsbou el bookings mta3 el nhar hadha (men ghir el marker mta3 el clôture)
+                const dayBookings = bookings.filter(b => b.date === dStr && b.clientName !== '--- JOURNÉE CLÔTURÉE ---');
+                
+                const totalCapacity = timeSlots.length * 2;
+                const bookedCount = dayBookings.length;
+
+                // 3. Logic mta3 el status (Ken msaker ywalli toul FullyBooked)
+                const isFullyBooked = isClosed || bookedCount >= totalCapacity;
+                const isPartiallyBooked = !isClosed && bookedCount > 0 && bookedCount < totalCapacity;
+                const isSelected = selectedDate === dStr;
+
+                // 4. Te5tiyar el Alwen
+                let dayStyles = "bg-white dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800 text-zinc-400 hover:border-zinc-400";
+                let statusText = "Libre";
+
+                if (isFullyBooked) {
+                  dayStyles = "bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400";
+                  statusText = "Complet";
+                } else if (isPartiallyBooked) {
+                  dayStyles = "bg-orange-500/10 border-orange-500/50 text-orange-600 dark:text-orange-400";
+                  statusText = "Semi-Occupé";
+                }
+
                 return (
                   <motion.div 
-                    whileHover={{ y: -3 }}
+                    whileHover={!isFullyBooked ? { y: -3 } : {}}
                     key={day} 
-                    onClick={() => setSelectedDate(dStr)}
-                    className={`h-16 md:h-28 border rounded-lg md:rounded-[1.5rem] p-2 md:p-5 flex flex-col justify-between transition-all cursor-pointer relative ${
-                      isOccupied 
-                      ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-black' 
-                      : 'bg-white dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800 text-zinc-400 hover:border-zinc-400 hover:text-black dark:hover:text-white'
-                    } ${isSelected ? 'ring-2 ring-black dark:ring-white ring-offset-2 scale-105 z-10 shadow-lg' : ''}`}
+                    onClick={() => !isFullyBooked && setSelectedDate(dStr)}
+                    className={`h-16 md:h-28 border rounded-lg md:rounded-[1.5rem] p-2 md:p-5 flex flex-col justify-between transition-all relative ${dayStyles} ${
+                      isSelected ? 'ring-2 ring-black dark:ring-white ring-offset-2 scale-105 z-10 shadow-lg !bg-black dark:!bg-white !text-white dark:!text-black' : ''
+                    } ${isFullyBooked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <span className="text-xs md:text-sm font-black">{day}</span>
+                    
                     <div className="hidden md:flex justify-between items-center">
-                      <span className="text-[7px] font-black uppercase tracking-widest opacity-60">
-                         {isOccupied ? 'Occupé' : 'Libre'}
+                      <span className="text-[7px] font-black uppercase tracking-widest opacity-80">
+                         {statusText}
                       </span>
                     </div>
-                    {isOccupied && <div className="absolute top-1 right-1 md:hidden w-1 h-1 bg-white dark:bg-black rounded-full"></div>}
+
+                    {/* Dot indicator lel mobile */}
+                    {(bookedCount > 0 || isClosed) && (
+                      <div className={`absolute top-2 right-2 md:hidden w-1.5 h-1.5 rounded-full ${isFullyBooked ? 'bg-red-500' : 'bg-orange-500'}`}></div>
+                    )}
                   </motion.div>
                 );
               })}
@@ -127,47 +162,49 @@ const PublicCalendar: React.FC<Props> = ({ bookings, setChatOpen }) => {
               <button onClick={() => setSelectedDate(null)} className="p-3 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-full text-zinc-400 hover:text-black dark:hover:text-white transition-all"><X size={18}/></button>
             </div>
 
-            {/* Time Slots Responsive Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4">
-              {timeSlots.map(time => {
-                const isBooked = bookings.find(b => b.date === selectedDate && b.time === time);
-                return (
-                  <div 
-                    key={time} 
-                    className={`p-4 md:p-6 rounded-2xl border text-center space-y-2 transition-all ${
-                      isBooked 
-                      ? 'bg-zinc-200 dark:bg-zinc-800/50 border-transparent text-zinc-400 dark:text-zinc-600' 
-                      : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-black dark:hover:border-white'
-                    }`}
-                  >
-                    <Clock size={12} className="mx-auto opacity-30" />
-                    <p className="text-xs md:text-sm font-black">{time}</p>
-                    <p className="text-[7px] uppercase tracking-widest font-black opacity-40">
-                      {isBooked ? 'Réservé' : 'Libre'}
-                    </p>
+            <div className="space-y-12">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* ÉQUIPE OFFICIELLE */}
+                <div className="space-y-6">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 border-l-2 border-black dark:border-white pl-4">Équipe Officielle</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {timeSlots.map(time => {
+                      const isBooked = bookings.find(b => b.date === selectedDate && b.time === time && (b.team === 'officielle' || !b.team));
+                      return (
+                        <div key={time} className={`p-4 rounded-2xl border text-center space-y-1 transition-all ${isBooked ? 'bg-zinc-100 dark:bg-zinc-900/50 border-transparent text-zinc-400 dark:text-zinc-600' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-black dark:hover:border-white shadow-sm'}`}>
+                          <p className="text-xs font-black">{time}</p>
+                          <p className="text-[7px] uppercase tracking-widest font-black opacity-40">{isBooked ? 'Occupé' : 'Libre'}</p>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+
+                {/* DEUXIÈME ÉQUIPE */}
+                <div className="space-y-6">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 border-l-2 border-zinc-300 dark:border-zinc-700 pl-4">Deuxième Équipe</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {timeSlots.map(time => {
+                      const isBooked = bookings.find(b => b.date === selectedDate && b.time === time && b.team === 'equipe_b');
+                      return (
+                        <div key={time} className={`p-4 rounded-2xl border text-center space-y-1 transition-all ${isBooked ? 'bg-zinc-100 dark:bg-zinc-900/50 border-transparent text-zinc-400 dark:text-zinc-600' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-black dark:hover:border-white shadow-sm'}`}>
+                          <p className="text-xs font-black">{time}</p>
+                          <p className="text-[7px] uppercase tracking-widest font-black opacity-40">{isBooked ? 'Occupé' : 'Libre'}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Call to Action Section */}
             <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col lg:flex-row items-center justify-between gap-8">
               <p className="text-zinc-500 text-xs md:text-sm font-medium max-w-xl text-center lg:text-left leading-relaxed">
                 Un créneau est libre ? Envoyez une demande via l'AI ou contactez-nous directement.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <Link 
-                  to="/contact" 
-                  className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-6 py-4 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-zinc-300 dark:hover:bg-zinc-700 transition text-center"
-                >
-                  Contact Direct
-                </Link>
-                <button 
-                  onClick={() => setChatOpen(true)} 
-                  className="bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-full text-[9px] font-bold uppercase tracking-widest hover:opacity-80 transition text-center"
-                >
-                  Demander à l'AI
-                </button>
+                <Link to="/contact" className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-6 py-4 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-zinc-300 dark:hover:bg-zinc-700 transition text-center">Contact Direct</Link>
+                <button onClick={() => setChatOpen(true)} className="bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-full text-[9px] font-bold uppercase tracking-widest hover:opacity-80 transition text-center">Demander à l'AI</button>
               </div>
             </div>
           </motion.div>

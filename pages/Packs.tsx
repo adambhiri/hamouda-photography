@@ -62,7 +62,7 @@ const Packs: React.FC<Props> = ({ packs }) => {
               </h3>
               <div className="flex items-baseline gap-1">
                 <span className="text-5xl font-black tracking-tighter">{pack.price}</span>
-                <span className="text-[10px] uppercase opacity-40">TND</span>
+                <span className="text-4xl uppercase opacity-40">DT</span>
               </div>
             </div>
             

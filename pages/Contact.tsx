@@ -67,8 +67,8 @@ const Contact: React.FC<Props> = ({ contact, user }) => {
             {[
               { icon: <Phone size={18}/>, label: 'Téléphone', val: contact.phone, link: `tel:${contact.phone}` },
               { icon: <Mail size={18}/>, label: 'Email', val: contact.email, link: `mailto:${contact.email}` },
-              { icon: <Instagram size={18}/>, label: 'Instagram', val: contact.instagram, link: '#' },
-              { icon: <Facebook size={18}/>, label: 'Facebook', val: contact.facebook, link: '#' }
+              { icon: <Instagram size={18}/>, label: 'Instagram', val: contact.instagram, link: 'https://www.instagram.com/hamouda_photography_/' },
+              { icon: <Facebook size={18}/>, label: 'Facebook', val: contact.facebook, link: 'https://www.facebook.com/Photographyhamouda' }
             ].map((item, i) => (
               <motion.a 
                 href={item.link}
@@ -87,24 +87,40 @@ const Contact: React.FC<Props> = ({ contact, user }) => {
             ))}
           </div>
 
-          <motion.div 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            className="p-8 md:p-12 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-[1.5rem] md:rounded-[2.5rem] relative overflow-hidden group shadow-sm"
-          >
-            <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 group-hover:scale-125 transition-transform duration-700">
-                <MapPin size={80} className="md:w-[120px] md:h-[120px]" />
+        <motion.a 
+    href="https://www.google.com/maps/place/?q=place_id:ChIJoa4cAwj1_RIRcaYOaTOtwC4" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    initial={{ opacity: 0 }}
+    whileInView={{ opacity: 1 }}
+    whileHover={{ y: -5 }} // Effect sghir ki t-7ot el souris
+    className="block p-8 md:p-12 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-[1.5rem] md:rounded-[2.5rem] relative overflow-hidden group shadow-sm cursor-pointer transition-all duration-300 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700"
+>
+    {/* Icon fil background mta3 el MapPin */}
+    <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 group-hover:scale-110 group-hover:opacity-10 transition-all duration-700 text-black dark:text-white">
+        <MapPin size={80} className="md:w-[120px] md:h-[120px]" />
+    </div>
+
+    <div className="flex items-start space-x-4 md:space-x-6 relative z-10">
+        <div className="p-3 md:p-4 bg-black dark:bg-white text-white dark:text-black rounded-xl md:rounded-2xl shadow-xl group-hover:scale-110 transition-transform duration-500">
+            <MapPin size={20} className="md:w-6 md:h-6" />
+        </div>
+        <div className="space-y-1 md:space-y-2">
+            <p className="text-xl md:text-2xl font-serif text-black dark:text-white">
+                Basé à Msaken, Sousse
+            </p>
+            <div className="flex items-center space-x-2">
+                <p className="text-[9px] md:text-xs text-zinc-400 uppercase tracking-widest leading-relaxed">
+                    Disponible pour déplacements nationaux & internationaux
+                </p>
+                {/* Icon sghira bech t-warri elli fama link */}
+                <span className="text-[10px] text-zinc-300 group-hover:text-black dark:group-hover:text-white transition-colors duration-300">
+                    ↗
+                </span>
             </div>
-            <div className="flex items-start space-x-4 md:space-x-6 relative z-10">
-              <div className="p-3 md:p-4 bg-black dark:bg-white text-white dark:text-black rounded-xl md:rounded-2xl shadow-xl">
-                <MapPin size={20} className="md:w-6 md:h-6" />
-              </div>
-              <div className="space-y-1 md:space-y-2">
-                <p className="text-xl md:text-2xl font-serif text-black dark:text-white">Basé à Msaken, Sousse</p>
-                <p className="text-[9px] md:text-xs text-zinc-400 uppercase tracking-widest leading-relaxed">Disponible pour déplacements nationaux & internationaux</p>
-              </div>
-            </div>
-          </motion.div>
+        </div>
+    </div>
+</motion.a>
         </div>
 
         {/* Form Side */}
@@ -125,7 +141,6 @@ const Contact: React.FC<Props> = ({ contact, user }) => {
               <input 
                 required
                 name="name"
-                value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Votre Nom Complet"
                 className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 px-6 py-4 md:px-8 md:py-5 rounded-xl md:rounded-2xl focus:bg-white dark:focus:bg-black focus:ring-2 ring-zinc-100 dark:ring-zinc-800 outline-none transition-all text-sm font-medium"
@@ -139,7 +154,6 @@ const Contact: React.FC<Props> = ({ contact, user }) => {
                 <input 
                   required
                   name="contactInfo"
-                  value={formData.contactInfo}
                   onChange={handleInputChange}
                   placeholder="Email ou Mobile"
                   className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 px-6 py-4 md:px-8 md:py-5 rounded-xl md:rounded-2xl focus:bg-white dark:focus:bg-black focus:ring-2 ring-zinc-100 dark:ring-zinc-800 outline-none transition-all text-sm font-medium"
@@ -151,7 +165,6 @@ const Contact: React.FC<Props> = ({ contact, user }) => {
                 <input 
                   required
                   name="eventDate"
-                  value={formData.eventDate}
                   onChange={handleInputChange}
                   className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 px-6 py-4 md:px-8 md:py-5 rounded-xl md:rounded-2xl focus:bg-white dark:focus:bg-black focus:ring-2 ring-zinc-100 dark:ring-zinc-800 outline-none transition-all text-sm font-medium uppercase"
                   type="date" 
@@ -163,7 +176,6 @@ const Contact: React.FC<Props> = ({ contact, user }) => {
               <label className="text-[9px] md:text-[10px] uppercase tracking-[0.4em] font-black text-zinc-400 ml-1">Votre Vision</label>
               <textarea 
                 name="message"
-                value={formData.message}
                 onChange={handleInputChange}
                 rows={4}
                 placeholder="Parlez-nous de votre projet..."

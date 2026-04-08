@@ -6,11 +6,11 @@ import { storage, STORAGE_KEYS } from '../services/storage';
 import { db } from '../services/supabaseService';
 
 import {
-    LayoutDashboard, Users, Image as ImageIcon, Package, Calendar as CalendarIcon,
-    Download, Plus, Trash2, ChevronLeft, ChevronRight, Mail, X, Save, Clock,
-    Database, Upload, RefreshCw, Settings, Video , Camera , Play , Check , Aperture
+    LayoutDashboard, Layout , Loader2 ,   Users, Image as ImageIcon, Package, Calendar as CalendarIcon,
+    Download, Plus, Trash2, ChevronLeft, ChevronRight, Mail, X, Save, Lock,
+    Database, CheckCircle2 , Upload, RefreshCw, Settings, LogOut , Camera , Play , Check , Aperture
 } from 'lucide-react';
-import { Link, Routes, Route } from 'react-router-dom';
+import { Link, Routes, Route , useNavigate } from 'react-router-dom';
 import { CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -31,22 +31,61 @@ interface AdminProps {
     setPortfolioItems: React.Dispatch<React.SetStateAction<PortfolioItem[]>>;
 }
 
-// --- SHARED SIDEBAR ---
-const Sidebar = () => (
-    <div className="w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 min-h-screen p-6 space-y-8 sticky top-0 flex flex-col transition-colors duration-300">
-        <Link to="/" className="text-xl font-serif block mb-8 text-black dark:text-white">Hamdi Admin</Link>
-        <div className="space-y-1 flex-grow text-zinc-600 dark:text-zinc-400">
-            <Link to="/admin" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><LayoutDashboard size={18} /> <span>Dashboard</span></Link>
-            <Link to="/admin/calendar" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><CalendarIcon size={18} /> <span>Calendrier</span></Link>
-            <Link to="/admin/packs" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Package size={18} /> <span>Packs</span></Link>
-            <Link to="/admin/portfolio" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Aperture size={18} /> <span>Portfolio</span></Link>
-            <Link to="/admin/slides" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><ImageIcon size={18} /> <span>Slides</span></Link>
-            <Link to="/admin/users" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Users size={18} /> <span>Utilisateurs</span></Link>
-            <Link to="/admin/settings" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Settings size={18} /> <span>Data & System</span></Link>
+const Sidebar = () => {
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        if (confirm("Voulez-vous vraiment vous déconnecter ?")) {
+            try {
+                // NESTA3MLOU EL DB SERVICE DIRECT
+                await db.logout(); 
+                
+                // Ba3d el logout n-rajjouh lel '/'
+                navigate('/');
+                window.location.reload(); 
+            } catch (error) {
+                console.error("Erreur logout:", error);
+                alert("Erreur lors de la déconnexion");
+            }
+        }
+    };
+
+    return (
+        <div className="w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 min-h-screen p-6 space-y-8 sticky top-0 flex flex-col transition-colors duration-300">
+            <Link to="/" className="text-xl font-serif block mb-8 text-black dark:text-white">Hamdi Admin</Link>
+            
+            <div className="space-y-1 flex-grow text-zinc-600 dark:text-zinc-400">
+                <Link to="/admin" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><LayoutDashboard size={18} /> <span>Dashboard</span></Link>
+                
+                <Link to="/admin/home-manager" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none">
+                    <Layout size={18} /> <span>Home Featured</span>
+                </Link>
+
+                <Link to="/admin/calendar" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><CalendarIcon size={18} /> <span>Calendrier</span></Link>
+                <Link to="/admin/packs" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Package size={18} /> <span>Packs</span></Link>
+                <Link to="/admin/portfolio" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Aperture size={18} /> <span>Portfolio</span></Link>
+                <Link to="/admin/slides" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><ImageIcon size={18} /> <span>Slides</span></Link>
+                <Link to="/admin/users" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Users size={18} /> <span>Utilisateurs</span></Link>
+                <Link to="/admin/settings" className="flex items-center space-x-3 p-3 hover:bg-white dark:hover:bg-zinc-900 rounded-lg text-sm transition hover:text-black dark:hover:text-white hover:shadow-sm dark:hover:shadow-none"><Settings size={18} /> <span>Data & System</span></Link>
+            </div>
+
+            {/* PARTIE LOUTANYA: Logout & Back to site */}
+            <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
+                <button 
+                    onClick={handleLogout}
+                    className="flex items-center space-x-3 w-full p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg text-sm transition font-medium"
+                >
+                    <LogOut size={18} />
+                    <span>Déconnexion</span>
+                </button>
+
+                <Link to="/" className="flex items-center text-[10px] text-zinc-500 uppercase tracking-widest hover:text-black dark:hover:text-white transition px-3">
+                    ← Retour au Site
+                </Link>
+            </div>
         </div>
-        <Link to="/" className="text-[10px] text-zinc-500 uppercase tracking-widest hover:text-black dark:hover:text-white transition">← Retour au Site</Link>
-    </div>
-);
+    );
+};
 
 
 // --- SETTINGS / DATA VIEW ---
@@ -189,14 +228,10 @@ const DashboardView = ({ bookings, users, packs }: { bookings: Booking[], users:
             return acc + price;
         }, 0);
 
-    // 2. KPI: Clients (Ne7sbou el 3bed li 3amlet rdv)
-    // Nesta3mlou Set bech ma na7sbouch nafs el client marrtin ken 3mal 2 rdv
     const totalClients = new Set(bookings.map(b => b.clientName)).size;
 
-    // 3. KPI: Total Réservations
     const totalBookings = bookings.length;
 
-    // Data for Graphs
     const bookingsByMonth = Array.from({ length: 12 }, (_, i) => {
         const monthName = new Date(0, i).toLocaleString('default', { month: 'short' });
         const revenue = bookings.filter(b => new Date(b.date).getMonth() === i).reduce((acc, b) => {
@@ -315,7 +350,14 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
 
     // State for Form
     const [editingId, setEditingId] = useState<number | string | null>(null);
-    const [formData, setFormData] = useState({ clientName: '', packId: packs[0]?.id || '', description: '', time: '10:00', priceOverride: '' });
+    const [formData, setFormData] = useState({ 
+        clientName: '', 
+        packId: packs[0]?.id || '', 
+        description: '', 
+        time: '10:00', 
+        priceOverride: '', 
+        team: 'officielle' 
+    });
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -323,14 +365,16 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
     const firstDay = new Date(year, month, 1).getDay();
     const monthName = currentDate.toLocaleString('default', { month: 'long' });
 
+    // Function to check if day is closed
+    const isDayClosed = (dateStr: string) => bookings.some(b => b.date === dateStr && b.status === 'cancelled' && b.clientName === '--- JOURNÉE CLÔTURÉE ---');
+
     const resetForm = () => {
         setEditingId(null);
-        setFormData({ clientName: '', packId: packs[0]?.id || '', description: '', time: '10:00', priceOverride: '' });
+        setFormData({ clientName: '', packId: packs[0]?.id || '', description: '', time: '10:00', priceOverride: '', team: 'officielle' });
     };
 
     const handleSaveBooking = async () => {
         if (!selectedDate || !formData.clientName) return;
-
         const bookingBase = {
             user_id: 'admin_manual',
             clientName: formData.clientName,
@@ -338,24 +382,40 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
             time: formData.time,
             status: 'confirmed' as const,
             pack_id: formData.packId,
-            description: formData.description
+            description: formData.description,
+            team: formData.team
         };
 
+        let updated;
         if (editingId) {
-            // EDIT MODE
-            const updatedBookings = bookings.map(b => b.id === editingId ? { ...b, ...bookingBase } : b);
-            setBookings(updatedBookings);
-            await db.saveBookings(updatedBookings); // Auto-save trigger
+            updated = bookings.map(b => b.id === editingId ? { ...b, ...bookingBase } : b);
         } else {
-            // ADD MODE
             const newBooking: Booking = { ...bookingBase, id: Date.now() };
-            setBookings([...bookings, newBooking]);
-            // db.saveBookings will be triggered by effect in Parent
+            updated = [...bookings, newBooking];
         }
-
+        setBookings(updated);
+        await db.saveBookings(updated);
         resetForm();
     };
 
+    const toggleDayCloture = async (dateStr: string) => {
+        const closed = isDayClosed(dateStr);
+        let updated;
+        if (closed) {
+            updated = bookings.filter(b => !(b.date === dateStr && b.clientName === '--- JOURNÉE CLÔTURÉE ---'));
+        } else {
+            const closureMarker: Booking = {
+                id: `cloture-${dateStr}`,
+                clientName: '--- JOURNÉE CLÔTURÉE ---',
+                date: dateStr,
+                status: 'cancelled',
+                team: 'system'
+            };
+            updated = [...bookings, closureMarker];
+        }
+        setBookings(updated);
+        await db.saveBookings(updated);
+    };
     const handleEditClick = (b: Booking) => {
         setEditingId(b.id);
         setFormData({
@@ -363,84 +423,84 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
             packId: b.pack_id || packs[0]?.id || '',
             description: b.description || '',
             time: b.time || '10:00',
-            priceOverride: ''
+            priceOverride: b.priceOverride || '',
+            team: b.team || 'officielle'
         });
     };
 
     const generateInvoice = (b: Booking) => {
         const doc = new jsPDF();
         const pack = packs.find(p => p.id === b.pack_id);
-
-        // --- LOGO / HEADER ---
-        doc.setFillColor(0, 0, 0); // Black Header
-        doc.rect(0, 0, 210, 40, 'F');
-
+        doc.setFillColor(0, 0, 0);
+        doc.rect(0, 0, 210, 50, 'F');
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
         doc.setFont("times", "bold");
-        doc.text("HAMOUDA PHOTOGRAPHY", 105, 20, { align: 'center' });
-        doc.setFontSize(12);
+        doc.setFontSize(24);
+        doc.text("HAMDI HAMOUDA", 105, 22, { align: 'center' });
         doc.setFont("helvetica", "normal");
-        doc.text("FACTURE / DEVIS", 105, 32, { align: 'center' });
-
-        // Reset
+        doc.setFontSize(10);
+        doc.setTextColor(180, 180, 180);
+        doc.text("PHOTOGRAPHY", 105, 30, { align: 'center' });
+        doc.setFontSize(8);
+        doc.text("STUDIO PROFESSIONNEL", 105, 38, { align: 'center' });
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
-
-        doc.text(`Date d'émission: ${new Date().toLocaleDateString()}`, 14, 50);
-        doc.text(`Réf: #INV-${b.id}`, 14, 55);
-
-        // Client Details Box
-        doc.setDrawColor(0, 0, 0);
-        doc.line(14, 60, 196, 60);
-
-        doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
-        doc.text("CLIENT:", 14, 70);
+        doc.text(`DATE D'ÉMISSION: ${new Date().toLocaleDateString('fr-FR')}`, 14, 60);
+        doc.text(`RÉFÉRENCE: #INV-${b.id.toString().slice(-5).toUpperCase()}`, 14, 65);
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.8);
+        doc.line(14, 70, 40, 70);
+        doc.setFontSize(11);
+        doc.text("CLIENT:", 14, 80);
+        doc.setFont("times", "bold");
+        doc.setFontSize(14);
+        doc.text(b.clientName.toUpperCase(), 14, 87);
         doc.setFont("helvetica", "normal");
-        doc.text(b.clientName, 14, 76);
-        doc.text(`Événement le: ${b.date} à ${b.time}`, 14, 82);
-
-        // Items
-        const items = [
-            [pack?.name || 'Service Photographie', pack?.price || 'Sur Devis']
-        ];
-
-        if (b.description) {
-            items.push(['Notes / Description', b.description]);
-        }
-
-        autoTable(doc, {
-            head: [['Désignation', 'Prix / Détails']],
-            body: items,
-            startY: 95,
-            theme: 'grid',
-            headStyles: { fillColor: [0, 0, 0], textColor: 255, fontStyle: 'bold' },
-            styles: { cellPadding: 5 }
-        });
-
-        // Footer
-        // @ts-ignore
-        const finalY = doc.lastAutoTable?.finalY || 150;
         doc.setFontSize(10);
-        doc.text("Merci de votre confiance.", 105, finalY + 20, { align: 'center' });
-        doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text("Hamouda Photography - Studio Professionnel", 105, finalY + 25, { align: 'center' });
-
-        doc.save(`facture_${b.clientName}.pdf`);
+        doc.text(`Séance prévue le: ${b.date} à ${b.time}`, 14, 94);
+        const items = [[
+            { content: pack?.name || 'Service Photographie', styles: { fontStyle: 'bold' as const, cellPadding: { top: 6, left: 5, right: 5, bottom: 2 } } },
+            { content: `${b.priceOverride || pack?.price || '---'} TND`, rowSpan: 2, styles: { halign: 'right' as const, fontStyle: 'bold' as const, verticalAlign: 'middle' as const, cellPadding: 5 } }
+        ],[
+            { content: b.description ? `Projet: ${b.description}` : '', styles: { fontSize: 9, textColor: [100, 100, 100], fontStyle: 'italic' as const, cellPadding: { top: 4, left: 5, right: 5, bottom: 5 } } }
+        ]];
+        autoTable(doc, {
+            head: [['DÉSIGNATION / PROJET', 'PRIX TOTAL']],
+            body: items as any,
+            startY: 105,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 0, 0], textColor: 255, fontStyle: 'bold' as any, halign: 'center' as any },
+            styles: { overflow: 'linebreak', cellWidth: 'wrap' },
+            columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 42 } }
+        });
+        const finalY = (doc as any).lastAutoTable?.finalY || 160;
+        doc.setFont("helvetica", "bold");
+        doc.text("TOTAL À PAYER:", 140, finalY + 10);
+        doc.text(`${pack?.price || b.priceOverride || '---'} TND`, 196, finalY + 10, { align: 'right' });
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("times", "italic");
+        doc.text("Merci de votre confiance.", 105, finalY + 25, { align: 'center' });
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(150, 150, 150);
+        doc.text("Hamdi Hamouda Photography | M'saken, Sousse", 105, finalY + 33, { align: 'center' });
+        doc.save(`Facture_${b.clientName}.pdf`);
     };
 
     return (
         <div className="space-y-8 text-black dark:text-white transition-colors">
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-serif">Gestion Planning</h2>
-                <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 px-6 py-3 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none transition-colors">
+                <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 px-6 py-3 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors">
                     <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="hover:text-zinc-600 dark:hover:text-zinc-400 transition"><ChevronLeft /></button>
-                    <span className="text-sm font-bold uppercase tracking-widest min-w-[150px] text-center text-black dark:text-white">{monthName} {year}</span>
+                    <span className="text-sm font-bold uppercase tracking-widest min-w-[150px] text-center">{monthName} {year}</span>
                     <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="hover:text-zinc-600 dark:hover:text-zinc-400 transition"><ChevronRight /></button>
                 </div>
             </div>
+
             <div className="bg-white dark:bg-zinc-950 p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 relative transition-colors">
                 <div className="grid grid-cols-7 gap-4 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-8">
                     {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(d => <div key={d}>{d}</div>)}
@@ -450,16 +510,25 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1;
                         const dStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                        const dayBookings = bookings.filter(b => b.date === dStr).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+                        const dayBookings = bookings.filter(b => b.date === dStr && b.clientName !== '--- JOURNÉE CLÔTURÉE ---').sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+                        const closed = isDayClosed(dStr);
+
                         return (
                             <div
                                 key={day}
                                 onClick={() => { setSelectedDate(dStr); setShowModal(true); resetForm(); }}
-                                className={`h-32 border border-zinc-200 dark:border-zinc-900 rounded-lg p-3 text-xs flex flex-col gap-2 hover:border-zinc-400 dark:hover:border-zinc-500 cursor-pointer transition ${dayBookings.length > 0 ? 'bg-zinc-50 dark:bg-zinc-900/50' : 'bg-transparent dark:bg-black/40'}`}
+                                className={`h-32 border border-zinc-200 dark:border-zinc-900 rounded-lg p-3 text-xs flex flex-col gap-1 hover:border-zinc-400 cursor-pointer transition relative ${closed ? 'bg-zinc-100 dark:bg-zinc-900/50 grayscale opacity-60' : 'bg-transparent'}`}
                             >
-                                <span className={`font-bold text-sm ${dayBookings.length > 0 ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-700'}`}>{day}</span>
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className={`font-bold text-sm ${dayBookings.length > 0 ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-700'}`}>{day}</span>
+                                    {closed && <Lock size={10} className="text-red-500" />}
+                                </div>
                                 {dayBookings.map(b => (
-                                    <div key={b.id} className="bg-white text-black p-1.5 rounded text-[7px] font-bold uppercase tracking-tighter truncate leading-none">
+                                    <div key={b.id} className={`p-1.5 rounded text-[7px] font-bold uppercase tracking-tighter truncate leading-none border ${
+                                        b.team === 'equipe_b' 
+                                        ? 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400' 
+                                        : 'bg-black text-white dark:bg-white dark:text-black border-transparent shadow-sm'
+                                    }`}>
                                         {b.time} - {b.clientName}
                                     </div>
                                 ))}
@@ -474,106 +543,73 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-white/80 dark:bg-black/98 backdrop-blur-md flex items-center justify-center p-4">
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 w-full max-w-5xl h-[90vh] flex rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
 
-                            {/* LEFT: FORM */}
+                            {/* LEFT: FORM SIDE */}
                             <div className="w-1/3 border-r border-zinc-200 dark:border-zinc-800 p-8 flex flex-col gap-6 bg-zinc-50 dark:bg-zinc-900/50">
                                 <h3 className="text-xl font-serif text-black dark:text-white">{editingId ? "Modifier le RDV" : "Nouveau RDV"}</h3>
-                                <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">{selectedDate}</p>
+                                
+                                {/* TOGGLE CLOTURE */}
+                                <div className="flex items-center justify-between p-3 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Statut Journée</span>
+                                    <button 
+                                        onClick={() => toggleDayCloture(selectedDate)}
+                                        className={`px-3 py-1 rounded-full text-[9px] font-black transition-all ${isDayClosed(selectedDate) ? 'bg-red-500 text-white' : 'bg-green-500/10 text-green-600 border border-green-500/20'}`}
+                                    >
+                                        {isDayClosed(selectedDate) ? 'CLÔTURÉE' : 'OUVERTE'}
+                                    </button>
+                                </div>
 
                                 <div className="space-y-4 flex-grow overflow-y-auto">
-                                    <input
-                                        placeholder="Nom du Client"
-                                        className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none focus:border-black dark:focus:border-white rounded text-black dark:text-white transition"
-                                        value={formData.clientName}
-                                        onChange={e => setFormData({ ...formData, clientName: e.target.value })}
-                                    />
-                                    <input
-                                        type="time"
-                                        className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none focus:border-black dark:focus:border-white rounded text-black dark:text-white transition"
-                                        value={formData.time}
-                                        onChange={e => setFormData({ ...formData, time: e.target.value })}
-                                    />
-                                    <select
-                                        className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none rounded text-zinc-700 dark:text-zinc-300 focus:border-black dark:focus:border-white transition"
-                                        value={formData.packId}
-                                        onChange={e => setFormData({ ...formData, packId: e.target.value })}
-                                    >
+                                    <input placeholder="Nom du Client" className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none focus:border-black dark:focus:border-white rounded text-black dark:text-white transition" value={formData.clientName} onChange={e => setFormData({ ...formData, clientName: e.target.value })} />
+                                    <input type="time" className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none focus:border-black dark:focus:border-white rounded text-black dark:text-white transition" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
+                                    <select className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none rounded text-black dark:text-white focus:border-black dark:focus:border-white transition" value={formData.team} onChange={e => setFormData({ ...formData, team: e.target.value })}>
+                                        <option value="officielle">Équipe Officielle</option>
+                                        <option value="equipe_b">Deuxième Équipe (B)</option>
+                                    </select>
+                                    <select className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none rounded text-zinc-700 dark:text-zinc-300 focus:border-black dark:focus:border-white transition" value={formData.packId} onChange={e => setFormData({ ...formData, packId: e.target.value })}>
                                         {packs.map(p => <option key={p.id} value={p.id}>{p.name} - {p.price}</option>)}
                                     </select>
-                                    <textarea
-                                        placeholder="Description / Notes"
-                                        className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none focus:border-black dark:focus:border-white rounded resize-none text-black dark:text-white h-32 transition"
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    />
+                                    <textarea placeholder="Description / Notes" className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none focus:border-black dark:focus:border-white rounded resize-none text-black dark:text-white h-32 transition" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                                 </div>
 
                                 <div className="space-y-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                                    <button onClick={handleSaveBooking} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded font-bold uppercase tracking-widest text-[10px] hover:opacity-80 transition flex items-center justify-center gap-2">
-                                        <Save size={14} /> {editingId ? "Mettre à jour" : "Enregistrer"}
-                                    </button>
-                                    {editingId && (
-                                        <button onClick={resetForm} className="w-full bg-zinc-800 text-zinc-400 py-3 rounded font-bold uppercase tracking-widest text-[10px] hover:bg-zinc-700 transition">
-                                            Annuler Modification
-                                        </button>
-                                    )}
+                                    <button onClick={handleSaveBooking} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded font-bold uppercase tracking-widest text-[10px] hover:opacity-80 transition flex items-center justify-center gap-2"><Save size={14} /> {editingId ? "Mettre à jour" : "Enregistrer"}</button>
+                                    {editingId && <button onClick={resetForm} className="w-full bg-zinc-800 text-zinc-400 py-3 rounded font-bold uppercase tracking-widest text-[10px] hover:bg-zinc-700 transition">Annuler Modification</button>}
                                 </div>
                             </div>
 
-                            {/* RIGHT: LIST */}
+                            {/* RIGHT: LIST SIDE */}
                             <div className="w-2/3 p-8 flex flex-col relative bg-white dark:bg-black/50">
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-xl font-serif text-black dark:text-white">Réservations du {selectedDate}</h3>
                                     <button onClick={() => setShowModal(false)} className="text-zinc-500 hover:text-black dark:hover:text-white p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full"><X size={20} /></button>
                                 </div>
                                 <div className="space-y-4 overflow-y-auto flex-grow pr-2">
-                                    {bookings.filter(b => b.date === selectedDate).sort((a, b) => (a.time || '').localeCompare(b.time || '')).map(b => (
-                                        <div
-                                            key={b.id}
-                                            onClick={() => handleEditClick(b)}
-                                            className={`border p-6 rounded-xl relative group cursor-pointer transition-all duration-300 hover:shadow-xl ${editingId === b.id ? 'bg-zinc-100 dark:bg-zinc-900 border-black dark:border-white ring-1 ring-black dark:ring-white' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 hover:border-zinc-500 dark:hover:border-zinc-600'}`}
-                                        >
+                                    {bookings.filter(b => b.date === selectedDate && b.clientName !== '--- JOURNÉE CLÔTURÉE ---').sort((a, b) => (a.time || '').localeCompare(b.time || '')).map(b => (
+                                        <div key={b.id} onClick={() => handleEditClick(b)} className={`border p-6 rounded-xl relative group cursor-pointer transition-all duration-300 hover:shadow-xl ${editingId === b.id ? 'bg-zinc-100 dark:bg-zinc-900 border-black dark:border-white ring-1 ring-black dark:ring-white' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 hover:border-zinc-500 dark:hover:border-zinc-600'}`}>
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className="font-bold text-lg text-black dark:text-white">{b.clientName}</p>
-                                                    <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 mt-1">
-                                                        {b.time} | {packs.find(p => p.id === b.pack_id)?.name}
-                                                    </p>
+                                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                        <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">{b.time} | {packs.find(p => p.id === b.pack_id)?.name}</p>
+                                                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border ${b.team === 'equipe_b' ? 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-black/5 dark:bg-white/10 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300'}`}>{b.team === 'equipe_b' ? 'Équipe B' : 'Officielle'}</span>
+                                                    </div>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); generateInvoice(b); }}
-                                                        className="p-2 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition"
-                                                        title="Télécharger Facture PDF"
-                                                    >
-                                                        <Download size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            if (confirm(`Supprimer la réservation pour "${b.clientName}"?`)) {
-                                                                await db.deleteBooking(b.id);
-                                                                setBookings(bookings.filter(item => item.id !== b.id));
-                                                                if (editingId === b.id) resetForm();
-                                                            }
-                                                        }}
-                                                        className="p-2 text-zinc-400 hover:text-red-500 bg-zinc-100 dark:bg-zinc-900 hover:bg-red-500/10 rounded-lg transition"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); generateInvoice(b); }} className="p-2 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition"><Download size={16} /></button>
+                                                    <button onClick={async (e) => { e.stopPropagation(); if (confirm(`Supprimer la réservation pour "${b.clientName}"?`)) { await db.deleteBooking(b.id); setBookings(bookings.filter(item => item.id !== b.id)); if (editingId === b.id) resetForm(); }}} className="p-2 text-zinc-400 hover:text-red-500 bg-zinc-100 dark:bg-zinc-900 hover:bg-red-500/10 rounded-lg transition"><Trash2 size={16} /></button>
                                                 </div>
                                             </div>
                                             {b.description && <p className="text-sm text-zinc-400 mt-4 italic border-l-2 border-zinc-800 pl-4 break-all">{b.description}</p>}
                                         </div>
                                     ))}
-                                    {bookings.filter(b => b.date === selectedDate).length === 0 && (
+                                    {bookings.filter(b => b.date === selectedDate && b.clientName !== '--- JOURNÉE CLÔTURÉE ---').length === 0 && (
                                         <div className="flex flex-col items-center justify-center h-full text-zinc-600 pb-20">
                                             <CalendarIcon size={48} className="mb-4 opacity-20" />
-                                            <p className="font-serif italic">Aucune réservation pour cette date.</p>
+                                            <p className="font-serif italic">Aucune réservation.</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
-
                         </motion.div>
                     </motion.div>
                 )}
@@ -581,7 +617,6 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
         </div>
     );
 };
-
 
 // --- PACKS MANAGEMENT (Admin Side) ---
 const PacksManagement = ({ packs, setPacks }: { packs: Pack[], setPacks: React.Dispatch<React.SetStateAction<Pack[]>> }) => (
@@ -1029,7 +1064,155 @@ const PortfolioManagement = ({ items, setItems }: { items: PortfolioItem[], setI
         </div>
     );
 };
+interface FeaturedItem {
+  category_name: string;
+  image_url: string;
+  display_order: number;
+}
 
+
+// 2. El UI Section f-west el Admin Component
+const HomeManager: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  
+  const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([
+    { category_name: '', image_url: '', display_order: 1 },
+    { category_name: '', image_url: '', display_order: 2 },
+    { category_name: '', image_url: '', display_order: 3 },
+  ]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setFetching(true);
+      try {
+        // 1. Nejbdou el Portfolio items l-kol (Typescript bech ya3refha PortfolioItem[])
+        const data = await db.getPortfolio(); // Wala db.getPortfolio() 3la 7asb esmha 3andek
+        if (data) setPortfolio(data as PortfolioItem[]);
+
+        // 2. Nejbdou el current featured cards
+        const featData = await db.getHomeFeatured();
+        if (featData && featData.length > 0) {
+          setFeaturedItems(prev => prev.map(item => {
+            const found = (featData as FeaturedItem[]).find(f => f.display_order === item.display_order);
+            return found ? found : item;
+          }));
+        }
+      } catch (err) {
+        console.error("Error loading home manager data:", err);
+      } finally {
+        setFetching(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const selectItemForSlot = (slotIdx: number, item: PortfolioItem) => {
+  const newItems = [...featuredItems];
+  newItems[slotIdx] = {
+    category_name: item.category, 
+    image_url: item.url, // item.url jeya mel interface mte3ek
+    display_order: slotIdx + 1
+  };
+  setFeaturedItems(newItems);
+};
+
+// El handleSaveAll t-kallam el db.upsertHomeFeatured
+const handleSaveAll = async () => {
+  setLoading(true);
+  try {
+    for (const item of featuredItems) {
+      if (item.category_name && item.image_url) {
+        // Houni tab3ath el item kamil lel service
+        await db.upsertHomeFeatured(item);
+      }
+    }
+    alert("Home Page Updated!");
+  } catch (err: any) {
+    console.error("Save Error:", err);
+    alert("Error 400: Thabbet f-el columns mta3 el Table f-Supabase");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  return (
+    <div className="space-y-12 max-w-[1600px] mx-auto">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-10">
+        <div>
+          <h1 className="text-4xl font-serif text-black dark:text-white transition-colors">Home Visuals</h1>
+          <p className="text-zinc-500 text-[10px] mt-3 uppercase tracking-[0.4em] font-black italic">Curate your landing page experience</p>
+        </div>
+        <button 
+          onClick={handleSaveAll}
+          disabled={loading}
+          className="bg-black dark:bg-white text-white dark:text-black px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-3 shadow-xl disabled:opacity-20"
+        >
+          {loading ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> <span>Publish to Live Site</span></>}
+        </button>
+      </div>
+
+      {/* --- LIVE SLOTS PREVIEW --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {featuredItems.map((slot, idx) => (
+          <div key={idx} className="group relative aspect-[3/4] bg-zinc-100 dark:bg-zinc-900 rounded-[3rem] overflow-hidden border-2 border-dashed border-zinc-200 dark:border-zinc-800 transition-all duration-500">
+            {slot.image_url ? (
+              <>
+                <img src={slot.image_url} className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-1000" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-10">
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mb-3">Slot 0{idx + 1}</span>
+                  <h3 className="text-3xl font-serif italic text-white leading-none">{slot.category_name}</h3>
+                </div>
+                <div className="absolute top-6 right-6 bg-green-500 p-1.5 rounded-full shadow-[0_0_15px_rgba(34,197,94,0.6)]">
+                  <CheckCircle2 size={14} className="text-white" />
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 dark:text-zinc-700 space-y-3">
+                <ImageIcon size={32} strokeWidth={1} />
+                <span className="text-[9px] font-black uppercase tracking-[0.3em]">Empty Slot 0{idx + 1}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* --- PORTFOLIO GALLERY SELECTOR --- */}
+      <div className="space-y-8 pt-10 border-t border-zinc-100 dark:border-zinc-900">
+        <div className="flex items-center space-x-3">
+            <div className="h-px bg-zinc-200 dark:bg-zinc-800 flex-grow" />
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-zinc-400 italic px-4 text-center">Select from your portfolio</h2>
+            <div className="h-px bg-zinc-200 dark:bg-zinc-800 flex-grow" />
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+          {portfolio.map((item) => (
+            <div key={item.id} className="group relative aspect-square rounded-[1.5rem] overflow-hidden cursor-pointer border border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white transition-all shadow-sm">
+              <img src={item.url} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-500" />
+              
+              <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center space-y-3 transition-all duration-300 backdrop-blur-[2px]">
+                <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Assign to:</p>
+                <div className="flex space-x-2">
+                  {[0, 1, 2].map(slotIdx => (
+                    <button 
+                      key={slotIdx}
+                      onClick={() => selectItemForSlot(slotIdx, item)}
+                      className="w-9 h-9 rounded-xl bg-white text-black text-[10px] font-black hover:bg-zinc-200 active:scale-90 transition-all shadow-xl"
+                    >
+                      {slotIdx + 1}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] font-serif italic text-white pt-2">{item.category}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 // --- MAIN ADMIN COMPONENT ---
 const Admin: React.FC<AdminProps> = (props) => {
 
@@ -1060,56 +1243,96 @@ const Admin: React.FC<AdminProps> = (props) => {
         console.log("Auto-saving slides to Supabase...");
         db.saveSlides(props.slides);
     }, [props.slides], 1000);
+useEffect(() => {
+    const loadInitialData = async () => {
+        try {
+            console.log("Fetching all data from Supabase...");
+            
+            // Fetch everything in parallel bech ykoun asra3
+            const [portfolioData, bookingsData, packsData] = await Promise.all([
+                db.getPortfolio(),
+                db.getBookings(), // El function elli warithaly tawa
+                db.getPacks()     // Itha 3andek getPacks zeda
+            ]);
 
-    /* --- PORTFOLIO EFFECT (Not needed if we save directly on Add/Delete) ---
-       But if we add edit feature later, we might need it. 
-       For now, Add/Delete calls db directly in component.
-    */
+            if (portfolioData) props.setPortfolioItems(portfolioData);
+            if (bookingsData) props.setBookings(bookingsData);
+            if (packsData) props.setPacks(packsData);
 
-
+        } catch (error) {
+            console.error("🔴 Erreur loading initial data:", error);
+        }
+    };
+    
+    loadInitialData();
+}, []); // Empty dependency array = runs once on mount
     return (
         <div className="h-screen fixed inset-0 bg-black overflow-hidden flex text-white font-sans">
             <Sidebar />
-            <div className="flex-grow h-full overflow-y-auto p-10 bg-zinc-50 dark:bg-zinc-950/30">
+            <div className="flex-grow h-full overflow-y-auto p-10 bg-zinc-50 dark:bg-zinc-950/30 text-black dark:text-white">
                 <Routes>
+                    {/* 1. Dashboard */}
                     <Route path="/" element={<DashboardView bookings={props.bookings} users={props.users} packs={props.packs} />} />
+                    
+                    {/* 2. Calendrier */}
                     <Route path="/calendar" element={<CalendarView bookings={props.bookings} setBookings={props.setBookings} packs={props.packs} />} />
+                    
+                    {/* 3. Packs */}
                     <Route path="/packs" element={<PacksManagement packs={props.packs} setPacks={props.setPacks} />} />
+                    
+                    {/* 4. Portfolio */}
                     <Route path="/portfolio" element={<PortfolioManagement items={props.portfolioItems} setItems={props.setPortfolioItems} />} />
+                    
+                    {/* 5. Slides */}
                     <Route path="/slides" element={<SlidesManagement slides={props.slides} setSlides={props.setSlides} />} />
+                    
+                    {/* 6. HOME MANAGER (Jdid) - Path lezem ykoun relative */}
+                    <Route path="/home-manager" element={<HomeManager />} />
+
+                    {/* 7. Utilisateurs */}
                     <Route path="/users" element={
-                        <div className="space-y-8 text-white">
-                            <h2 className="text-3xl font-serif">Utilisateurs</h2>
-                            {/* --- ZID EL BOUTON HEDHA --- */}
+                        <div className="space-y-8">
+                            <h2 className="text-3xl font-serif text-black dark:text-white">Utilisateurs</h2>
                             <button
                                 onClick={async () => {
                                     console.log("🟡 Rafraîchissement de la liste des utilisateurs...");
-                                    const latestUsers = await db.getUsers(); // Nejbdou el lista el jdida
-                                    props.setUsers(latestUsers); // N'actualisiw el state
+                                    const latestUsers = await db.getUsers();
+                                    props.setUsers(latestUsers);
                                     console.log("✅ Liste des utilisateurs mise à jour!");
                                 }}
-                                className="bg-zinc-800 text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-widest hover:bg-zinc-700"
+                                className="bg-zinc-800 text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-widest hover:bg-zinc-700 transition"
                             >
                                 Rafraîchir
                             </button>
-                            <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+                            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
                                 <table className="w-full text-left">
-
-                                    <thead className="bg-zinc-950 text-[10px] uppercase tracking-widest text-zinc-500 font-bold border-b border-zinc-800">
-
-                                        <tr><th className="p-4">Nom</th><th className="p-4">Email</th><th className="p-4">Rôle</th><th className="p-4">Actions</th><th className="p-4">Delete</th></tr>
+                                    <thead className="bg-zinc-50 dark:bg-zinc-950 text-[10px] uppercase tracking-widest text-zinc-500 font-bold border-b border-zinc-200 dark:border-zinc-800">
+                                        <tr>
+                                            <th className="p-4">Nom</th>
+                                            <th className="p-4">Email</th>
+                                            <th className="p-4">Rôle</th>
+                                            <th className="p-4">Actions</th>
+                                            <th className="p-4">Delete</th>
+                                        </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="text-black dark:text-zinc-300">
                                         {props.users.map(u => (
-                                            <tr key={u.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition">
+                                            <tr key={u.id} className="border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition">
                                                 <td className="p-4 font-bold">{u.name}</td>
-                                                <td className="p-4 text-zinc-400">{u.email}</td>
-                                                <td className="p-4"><span className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${u.role === 'admin' ? 'bg-white text-black' : 'bg-zinc-800'}`}>{u.role}</span></td>
-                                                <td className="p-4"><button className="text-zinc-600 hover:text-white"><Mail size={16} /></button></td>
+                                                <td className="p-4 text-zinc-500">{u.email}</td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${u.role === 'admin' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-400'}`}>
+                                                        {u.role}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <button className="text-zinc-400 hover:text-black dark:hover:text-white transition">
+                                                        <Mail size={16} />
+                                                    </button>
+                                                </td>
                                                 <td className="p-4">
                                                     <button
                                                         onClick={async () => {
-                                                            // Ma t'fassakhch l'admin principal
                                                             if (u.email === 'hamdi@hamouda.tn') {
                                                                 alert("Impossible de supprimer le compte admin principal.");
                                                                 return;
@@ -1119,24 +1342,24 @@ const Admin: React.FC<AdminProps> = (props) => {
                                                                 props.setUsers(props.users.filter(user => user.id !== u.id));
                                                             }
                                                         }}
-                                                        className="text-zinc-600 hover:text-red-500"
+                                                        className="text-zinc-400 hover:text-red-500 transition"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </td>
                                             </tr>
-
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     } />
+
+                    {/* 8. Settings */}
                     <Route path="/settings" element={<SettingsView {...props} />} />
                 </Routes>
             </div>
         </div>
     );
 };
-
 export default Admin;

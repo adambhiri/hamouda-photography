@@ -229,6 +229,50 @@ async updatePortfolioItem(itemId: number | string, updatedData: Partial<Portfoli
       console.log("✅ Portfolio sauvegardé avec succès!");
     }
   },
+ // 1. Tjib el categories el kol mel portfolio
+  async getCategories() {
+    const { data, error } = await supabase
+      .from('portfolio_items')
+      .select('category');
+    if (error) throw error;
+    return data;
+  },
+
+  // 2. Tjib el 3 cards elli bech yodhor f-el Home
+ // F-west el object db f-el supabaseService.ts
+async getHomeFeatured() {
+  const { data, error } = await supabase
+    .from('home_featured')
+    .select('*')
+    .order('display_order', { ascending: true });
+  if (error) throw error;
+  return data;
+},
+
+async upsertHomeFeatured(item: { category_name: string; image_url: string; display_order: number }) {
+  const { data, error } = await supabase
+    .from('home_featured')
+    .upsert({
+      category_name: item.category_name,
+      image_url: item.image_url,
+      display_order: item.display_order
+    }, { 
+      onConflict: 'display_order' 
+    });
+
+  if (error) {
+    console.error("Error details:", error);
+    throw error;
+  }
+  return data;
+}
+,
+async logout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    // Nadhfou el local storage bech ma yo93od chay
+    localStorage.removeItem('sb-api-auth-token'); 
+},
   // UPLOAD with SIGNED URL (bypasses RLS)
  async uploadPortfolioFile(file: File): Promise<string | null> {
     const fileName = `${Date.now()}_${file.name}`;

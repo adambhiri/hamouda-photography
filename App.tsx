@@ -11,11 +11,9 @@ import ChatBot from './components/ChatBot';
 import { Pack, Booking, Slide, ContactInfo, User, PortfolioItem } from './types';
 import { db } from './services/supabaseService';
 import { LogOut, User as UserIcon, ShieldCheck, Calendar as CalendarIcon, Loader2 , X , Menu , Camera , Package , Mail , Home as LucideHome , Sun , Moon} from 'lucide-react';
-import { supabase } from './services/supabaseService'; // ZID EL IMPORT HEDHA
-
+import { supabase } from './services/supabaseService'; 
 
 const Navbar: React.FC<{ user: any, onLogout: () => void }> = ({ user, onLogout }) => {
-    const location = useLocation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         // Init m'al localStorage walla system preference
@@ -54,10 +52,25 @@ const Navbar: React.FC<{ user: any, onLogout: () => void }> = ({ user, onLogout 
             <nav className="fixed top-0 left-0 right-0 z-[60] bg-white/80 dark:bg-black/80 backdrop-blur-lg border-b border-zinc-100 dark:border-zinc-900 transition-colors duration-300">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     
-                    {/* LOGO */}
-                    <Link to="/" onClick={() => setIsMenuOpen(false)} className="text-lg md:text-xl font-serif tracking-[0.2em] z-[70] dark:text-white text-black">
-                        HAMOUDA <span className="font-light opacity-60">PHOTOGRAPHY</span>
-                    </Link>
+                    {/* LOGO RESPONSIVE & ARTISTIQUE */}
+<Link 
+  to="/" 
+  onClick={() => setIsMenuOpen(false)} 
+  className="flex flex-col items-center group z-[70] dark:text-white text-black"
+>
+  {/* HAMDI HAMOUDA: Responsive Sizes */}
+  <div className="flex items-center gap-2 md:gap-4 font-serif tracking-[0.1em] leading-none">
+    <span className="text-sm md:text-xl lg:text-2xl uppercase">Hamdi</span>
+    <span className="text-sm md:text-xl lg:text-2xl uppercase">Hamouda</span>
+  </div>
+
+  {/* PHOTOGRAPHY: Responsive Spacing */}
+  <div className="w-full flex items-center justify-center mt-1 md:mt-2">
+    <span className="text-[7px] md:text-[10px] font-light italic tracking-[0.3em] md:tracking-[0.6em] uppercase opacity-60 border-t border-zinc-200 dark:border-zinc-800 pt-1 w-full text-center">
+      Photography
+    </span>
+  </div>
+</Link>
 
                     {/* DESKTOP LINKS & THEME (Visible only on LG screens) */}
                     <div className="hidden lg:flex items-center space-x-8 uppercase text-[10px] tracking-[0.2em] font-bold text-zinc-500">
@@ -131,6 +144,14 @@ const Navbar: React.FC<{ user: any, onLogout: () => void }> = ({ user, onLogout 
         </>
     );
 };
+function NavigationWrapper({ user, handleLogout }: any) {
+    const location = useLocation();
+    const isAdmin = location.pathname.toLowerCase().startsWith('/admin');
+
+    // Itha mouch admin, affichi el Navbar
+    if (isAdmin) return null;
+    return <Navbar user={user} onLogout={handleLogout} />;
+}
 function App() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<User | null>(null);
@@ -146,43 +167,43 @@ const [contact, setContact] = useState<ContactInfo>({
 });    const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
         const [chatOpen, setChatOpen] = useState(false);
 
-
-    useEffect(() => {
-        let mounted = true;
-        const initApp = async () => {
-            try {
-                // S'assurer que le mode sombre est appliqué au démarrage si nécessaire
-                if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-
-                const [p, b, s, u, c, port] = await Promise.all([
-    db.getPacks().catch(() => []), // Rod-ha array fergh toul
-    db.getBookings().catch(() => []),
-    db.getSlides().catch(() => []),
-    db.getUsers().catch(() => []),
-    db.getContact().catch(() => null), // Rod-ha null
-    db.getPortfolio().catch(() => [])
-]);
-
-// W fil state:
-setPacks(p || []);
-setSlides(s || []);
-if (c) setContact(c);
-            } catch (err) {
-                console.error("Critical Init Error:", err);
-            } finally {
-                if (mounted) {
-                    setLoading(false);
-                }
+   useEffect(() => {
+    let mounted = true;
+    const initApp = async () => {
+        try {
+            // Theme check
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
             }
-        };
 
-        initApp();
-        return () => { mounted = false; };
-    }, []);
+            // Fetching ALL data from Supabase
+            const [p, b, s, u, c, port] = await Promise.all([
+                db.getPacks().catch(() => []),
+                db.getBookings().catch(() => []), // <--- Data bookings jaya houni
+                db.getSlides().catch(() => []),
+                db.getUsers().catch(() => []),
+                db.getContact().catch(() => null),
+                db.getPortfolio().catch(() => [])
+            ]);
+
+            if (mounted) {
+                setPacks(p || []);
+                setBookings(b || []);      // <--- HETHI EL NA9SA! Lezem t7otha bech el calendar yet3abba
+                setSlides(s || []);
+                setUsers(u || []);
+                setPortfolioItems(port || []);
+                if (c) setContact(c);
+            }
+        } catch (err) {
+            console.error("Critical Init Error:", err);
+        } finally {
+            if (mounted) setLoading(false);
+        }
+    };
+
+    initApp();
+    return () => { mounted = false; };
+}, []);
 
     useEffect(() => {
         const checkSession = async () => {
@@ -220,15 +241,15 @@ if (c) setContact(c);
         await supabase.auth.signOut();
         setUser(null);
     };
-
+   
+const showNavbar = location.pathname.startsWith('/admin');
     return (
         <React.Fragment> {/* Use Fragment to avoid extra divs if possible, but HashRouter needs one child usually */}
             <HashRouter>
                 <div className="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
-                    <Navbar user={user} onLogout={handleLogout} />
-                    <main className="flex-grow pt-20">
+<NavigationWrapper user={user} handleLogout={handleLogout} />                    <main className="flex-grow pt-20">
                         <Routes>
-                            <Route path="/" element={<Home slides={slides} packs={packs}  />} />
+                            <Route path="/" element={ <Home slides={slides} packs={packs} portfolioItems={portfolioItems}  /> } />
                             <Route path="/portfolio" element={<Portfolio />} />
                             <Route path="/packs" element={<Packs packs={packs} />} />
                             <Route path="/calendar" element={<PublicCalendar bookings={bookings} setChatOpen={setChatOpen} />} />
@@ -239,20 +260,20 @@ if (c) setContact(c);
                                 path="/admin/*"
                                 element={
                                     user?.role === 'admin' ? (
-                                        <Admin
-                                            packs={packs}
-                                            setPacks={setPacks}
-                                            bookings={bookings}
-                                            setBookings={setBookings}
-                                            slides={slides}
-                                            setSlides={setSlides}
-                                            contact={contact}
-                                            setContact={setContact}
-                                            users={users}
-                                            setUsers={setUsers}
-                                            portfolioItems={portfolioItems} // <-- ZEDNA HEDHI
-                                            setPortfolioItems={setPortfolioItems} // <-- W ZEDNA HEDHI
-                                        />
+                                       <Admin
+    packs={packs}
+    setPacks={setPacks}
+    bookings={bookings}
+    setBookings={setBookings}
+    slides={slides}
+    setSlides={setSlides}
+    contact={contact}
+    setContact={setContact}
+    users={users}
+    setUsers={setUsers}
+    portfolioItems={portfolioItems as any} 
+    setPortfolioItems={setPortfolioItems as any}
+/>
                                     ) : (
                                         <div className="h-[80vh] flex items-center justify-center font-serif text-2xl text-center px-6">
                                             Accès réservé à Hamdi Hamouda.
