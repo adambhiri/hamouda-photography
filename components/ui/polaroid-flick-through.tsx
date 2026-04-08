@@ -15,77 +15,103 @@ interface CardProps {
   index: number;
   total: number;
   scrollYProgress: MotionValue<number>;
+  isMobile: boolean;
 }
-// --- NEW: BACKGROUND TYPOGRAPHY COMPONENT (Positioned Bottom) ---
-const BackgroundText = ({ scrollYProgress }: { scrollYProgress: MotionValue<number> }) => {
-  // El klém yet-7arrek mel lisar lel limin
-  const x1 = useTransform(scrollYProgress, [0, 1], [100, -300]);
-  const x2 = useTransform(scrollYProgress, [0, 1], [-100, 300]);
-  
-  // El Opacity yabda y-dh-har ken ki el cards yabdaw y-spread-iw (f-el wost el scroll)
-  const opacity = useTransform(scrollYProgress, [0.1, 0.4, 0.9], [0, 0.06, 0]);
 
+const ScrollIndicator = ({ scrollYProgress }: { scrollYProgress: MotionValue<number> }) => {
+  const opacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
   return (
-    <div className="absolute bottom-10 md:bottom-20 left-0 w-full overflow-hidden pointer-events-none flex flex-col gap-0 select-none z-0">
-      <motion.h2 
-        style={{ x: x1, opacity }}
-        className="text-[12vw] font-serif italic text-zinc-900 dark:text-white whitespace-nowrap leading-[0.8] opacity-10"
-      >
-        HAMDI HAMOUDA HAMDI HAMOUDA
-      </motion.h2>
-      <motion.h2 
-        style={{ x: x2, opacity }}
-        className="text-[12vw] font-serif italic text-zinc-900 dark:text-white whitespace-nowrap leading-[0.8] ml-[-20vw] opacity-10"
-      >
-        STUDIO PRO STUDIO PRO STUDIO PRO
-      </motion.h2>
-    </div>
+    <motion.div 
+      style={{ opacity }}
+      className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 select-none z-20 pointer-events-none"
+    >
+      <span className="text-xs tracking-[0.3em] uppercase font-bold text-zinc-400 dark:text-zinc-500">SCROLL</span>
+      <div className="relative h-10 w-6 border border-zinc-300 dark:border-zinc-700 rounded-full flex justify-center pt-2">
+        <motion.div animate={{ y: [0, 12, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}>
+          <div className="w-1 h-2 bg-zinc-400 dark:bg-zinc-500 rounded-full" />
+        </motion.div>
+      </div>
+    </motion.div>
   );
 };
-const AnimatedCard = ({ card, index, total, scrollYProgress }: CardProps) => {
+
+const AnimatedCard = ({ card, index, total, scrollYProgress, isMobile }: CardProps) => {
   const categoryName = card.category_name.charAt(0).toUpperCase() + card.category_name.slice(1).toLowerCase();
 
-  // --- 1. CALCULATIONS ---
-  const cardWidth = 400;
-  const centerIndex = (total - 1) / 2;
-  const targetX = (index - centerIndex) * cardWidth;
+  let x, y, opacity, rotate, scale, zIndex;
 
-  // --- 2. TIMING RANGES ---
-  const delay = index * 0.05;
-  const introStart = 0 + delay;
-  const introEnd = 0.1 + delay;
+  if (isMobile) {
+    // === MOBILE: VERY FAST SPREAD ===
+    
+    // 1. Scale
+    const baseScale = 0.6;
+    zIndex = (index + 1) * 10;
 
-  const spreadStart = 0.12;
-  const spreadEnd = 0.2;
+    // 2. Arc Positions
+    const arcPositions = [
+      { x: -100, y: 40, r: -20 },  // Left
+      { x: 0,    y: -40, r: 0 },   // Center Top
+      { x: 100,  y: 40, r: 20 }    // Right
+    ];
 
-  const dropStart = 0.6;
-  const dropEnd = 0.7;
+    const pos = arcPositions[index] || { x: 0, y: 0, r: 0 };
 
-  // --- 3. ANIMATIONS ---
+    // 3. SUPER FAST RANGES
+    const step1Start = 0.0;
+    const step1End = 0.15;   // SPREAD ENDS FAST (15% scroll)
+    const step2Start = 0.6; 
+    const step2End = 0.9;   
 
-  // A. OPACITY
-  const opacity = useTransform(scrollYProgress, 
-    [introStart, introEnd, dropStart, dropEnd], 
-    [0, 1, 1, 0]
-  );
+    // 4. Animation
+    
+    x = useTransform(scrollYProgress, 
+      [step1Start, step1End, step2Start, step2End], 
+      [0, pos.x, pos.x, pos.x * 3] 
+    );
 
-  // B. INTRO SCALE
-  const introScale = useTransform(scrollYProgress, [introStart, introEnd], [0.8, 1]);
+    const initialStack = (total - 1 - index) * 5; 
+    y = useTransform(scrollYProgress, 
+      [step1Start, step1End, step2Start, step2End], 
+      [initialStack, pos.y, pos.y, -800] 
+    );
 
-  // C. SPREAD X
-  const x = useSpring(
-    useTransform(scrollYProgress, [spreadStart, spreadEnd], [0, targetX]), 
-    { stiffness: 300, damping: 30 }
-  );
-  
-  // D. DROP Y
-  const y = useSpring(
-    useTransform(scrollYProgress, [dropStart, dropEnd], [0, 200]), 
-    { stiffness: 300, damping: 30 }
-  );
+    opacity = useTransform(scrollYProgress, 
+      [step2Start, step2End], 
+      [1, 0]
+    );
 
-  // E. ROTATE
-  const rotate = useTransform(scrollYProgress, [spreadStart, spreadEnd], [(index - centerIndex) * 10, 0]);
+    rotate = useTransform(scrollYProgress, 
+      [step1Start, step1End, step2Start, step2End], 
+      [0, pos.r, pos.r, pos.r - 30]
+    );
+
+    scale = useTransform(scrollYProgress, 
+      [step1Start, step1End], 
+      [baseScale * 0.9, baseScale] 
+    );
+
+  } else {
+    // === DESKTOP: HORIZONTAL SPREAD ===
+    const cardWidth = 400;
+    const centerIndex = (total - 1) / 2;
+    const targetX = (index - centerIndex) * cardWidth;
+
+    const delay = index * 0.05;
+    const introStart = 0 + delay;
+    const introEnd = 0.01 + delay;
+    const spreadStart = 0.1;
+    const spreadEnd = 0.15;
+    const dropStart = 0.85;
+    const dropEnd = 0.95;
+
+    opacity = useTransform(scrollYProgress, [introStart, introEnd, dropStart, dropEnd], [0, 1, 1, 0]);
+    const introScale = useTransform(scrollYProgress, [introStart, introEnd], [0.8, 1]);
+    x = useSpring(useTransform(scrollYProgress, [spreadStart, spreadEnd], [0, targetX]), { stiffness: 400, damping: 30 });
+    y = useSpring(useTransform(scrollYProgress, [dropStart, dropEnd], [0, 100]), { stiffness: 400, damping: 30 });
+    rotate = useTransform(scrollYProgress, [spreadStart, spreadEnd], [(index - centerIndex) * 10, 0]);
+    scale = introScale;
+    zIndex = 10 - index;
+  }
 
   return (
     <motion.div
@@ -93,20 +119,20 @@ const AnimatedCard = ({ card, index, total, scrollYProgress }: CardProps) => {
         x,
         y,
         opacity,
-        scale: introScale,
+        scale,
         rotate,
         position: 'absolute',
         top: '50%',
         left: '50%',
         marginTop: '-250px',
         marginLeft: '-175px',
-        zIndex: 10 - index,
+        zIndex: zIndex,
       }}
       className="w-[350px] h-[500px] flex-shrink-0"
     >
       <Link 
         to={`/portfolio?category=${categoryName}`}
-        className="relative w-full h-full group cursor-pointer no-underline block"
+        className="relative w-full h-full group cursor-pointer no-undefined block"
       >
         <div className="relative w-full h-full bg-zinc-100 dark:bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-zinc-200 dark:border-white/10 shadow-xl dark:shadow-2xl transition-all duration-500 hover:border-zinc-400 dark:hover:border-white/30">
           
@@ -117,7 +143,7 @@ const AnimatedCard = ({ card, index, total, scrollYProgress }: CardProps) => {
           />
           
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-200/80 via-transparent to-transparent dark:from-black dark:via-transparent dark:to-transparent flex flex-col justify-end p-8 transition-all duration-400">
-            <h3 className="text-zinc-800 dark:text-white text-3xl md:text-4xl font-serif italic tracking-tighter">
+            <h3 className="text-black dark:text-white text-3xl md:text-4xl font-serif italic tracking-tighter">
               {card.category_name}
             </h3>
             <div className="h-[1px] w-0 group-hover:w-full bg-black/40 dark:bg-white/40 transition-all duration-500 mt-2" />
@@ -128,56 +154,10 @@ const AnimatedCard = ({ card, index, total, scrollYProgress }: CardProps) => {
   );
 };
 
-// --- NEW: SCROLL INDICATOR COMPONENT ---
-// Hedhy component sghira tethabet louta
-// --- SCROLL INDICATOR COMPONENT (Fixed Z-Index) ---
-const ScrollIndicator = ({ scrollYProgress }: { scrollYProgress: MotionValue<number> }) => {
-  const opacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
-  
-  return (
-    <motion.div 
-      style={{ 
-        opacity,
-        zIndex: 20 // HOUNI EL BADAL: T7ina fouk el cartes
-      }}
-      className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 select-none pointer-events-none"
-    >
-      {/* Text */}
-      <span className="text-xs tracking-[0.3em] uppercase font-light text-zinc-500 dark:text-zinc-400">
-        Scroll
-      </span>
-      
-      {/* Animated Arrow Container */}
-      <div className="relative h-6 w-4 overflow-hidden">
-        {/* Arrow 1 */}
-        <motion.div
-          animate={{ y: [0, 24] }}
-          transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-          className="absolute top-0 left-1/2 -translate-x-1/2"
-        >
-          <svg width="16" height="24" viewBox="0 0 16 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-500 dark:text-zinc-400">
-            <path d="M8 0 L8 20 M3 15 L8 20 L13 15" />
-          </svg>
-        </motion.div>
-        
-        {/* Arrow 2 */}
-        <motion.div
-          animate={{ y: [-24, 0] }}
-          transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-          className="absolute top-0 left-1/2 -translate-x-1/2"
-        >
-          <svg width="16" height="24" viewBox="0 0 16 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-500 dark:text-zinc-400">
-            <path d="M8 0 L8 20 M3 15 L8 20 L13 15" />
-          </svg>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-};
-
 export default function StudioStack() {
   const [cards, setCards] = useState<FeaturedCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -185,9 +165,12 @@ export default function StudioStack() {
     offset: ["start start", "end end"]
   });
 
-  // Animation mta3 el ktiba: t-dh-har ken f-ekher el scroll
-  const textOpacity = useTransform(scrollYProgress, [0.8, 0.95], [0, 1]);
-  const textY = useTransform(scrollYProgress, [0.8, 1], [50, 0]);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchHomeCards = async () => {
@@ -214,38 +197,28 @@ export default function StudioStack() {
   return (
     <section 
       ref={containerRef}
-      style={{ height: '200vh' }} 
-      className="relative bg-white dark:bg-black transition-colors duration-500 flex flex-col"
+      style={{ height: '300vh' }} 
+      className="relative bg-white dark:bg-black transition-colors duration-500"
     >
-      {/* 1. EL PARTIE MTA3 EL CARDS (Sticky) */}
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
-        <div className="relative w-full h-full">
-          {cards.map((card, idx) => (
-            <AnimatedCard 
-              key={idx} 
-              card={card} 
-              index={idx} 
-              total={cards.length} 
-              scrollYProgress={scrollYProgress} 
-            />
-          ))}
-          
+      <div 
+        className="sticky top-0 h-screen w-full flex items-center justify-center overflow-visible"
+      >
+        <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full">
+            {cards.map((card, idx) => (
+              <AnimatedCard 
+                key={idx} 
+                card={card} 
+                index={idx} 
+                total={cards.length} 
+                scrollYProgress={scrollYProgress}
+                isMobile={isMobile}
+              />
+            ))}
+          </div>
           <ScrollIndicator scrollYProgress={scrollYProgress} />
         </div>
       </div>
-
-      {/* 2. EL ZIYADA HOUNI: El ktiba dji BA3D el cards (louta bel koll) */}
-      <motion.div 
-        style={{ opacity: textOpacity, y: textY }}
-        className="absolute bottom-20 left-0 w-full flex flex-col items-center justify-center pointer-events-none"
-      >
-        <h2 className="text-[10vw] md:text-[8vw] font-serif italic text-zinc-900 dark:text-white leading-none tracking-tighter opacity-10 dark:opacity-20 uppercase">
-          Hamdi Hamouda
-        </h2>
-        <p className="text-xs md:text-sm tracking-[0.8em] uppercase font-light text-zinc-500 mt-4">
-          Visual Storyteller • Studio Pro
-        </p>
-      </motion.div>
     </section>
   );
 }
