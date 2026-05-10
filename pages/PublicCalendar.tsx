@@ -169,7 +169,11 @@ const PublicCalendar: React.FC<Props> = ({ bookings, setChatOpen }) => {
                   <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 border-l-2 border-black dark:border-white pl-4">Équipe Officielle</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {timeSlots.map(time => {
-                      const isBooked = bookings.find(b => b.date === selectedDate && b.time === time && (b.team === 'officielle' || !b.team));
+                      const isBooked = bookings.find(b => 
+  b.date === selectedDate && 
+  b.time?.startsWith(time) && 
+  (b.team === 'officielle' || !b.team || b.team === '')
+);
                       return (
                         <div key={time} className={`p-4 rounded-2xl border text-center space-y-1 transition-all ${isBooked ? 'bg-zinc-100 dark:bg-zinc-900/50 border-transparent text-zinc-400 dark:text-zinc-600' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-black dark:hover:border-white shadow-sm'}`}>
                           <p className="text-xs font-black">{time}</p>
@@ -185,7 +189,11 @@ const PublicCalendar: React.FC<Props> = ({ bookings, setChatOpen }) => {
                   <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 border-l-2 border-zinc-300 dark:border-zinc-700 pl-4">Deuxième Équipe</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {timeSlots.map(time => {
-                      const isBooked = bookings.find(b => b.date === selectedDate && b.time === time && b.team === 'equipe_b');
+                     const isBooked = bookings.find(b => 
+  b.date === selectedDate && 
+  b.time?.startsWith(time) && 
+  b.team === 'equipe_b'
+);
                       return (
                         <div key={time} className={`p-4 rounded-2xl border text-center space-y-1 transition-all ${isBooked ? 'bg-zinc-100 dark:bg-zinc-900/50 border-transparent text-zinc-400 dark:text-zinc-600' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-black dark:hover:border-white shadow-sm'}`}>
                           <p className="text-xs font-black">{time}</p>

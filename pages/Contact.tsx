@@ -82,8 +82,9 @@ const Contact: React.FC<Props> = ({ contact, user }) => {
                   <span className="p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-100 dark:border-zinc-800 group-hover:scale-110 transition-transform">{item.icon}</span>
                   {item.label}
                 </h3>
-                <p className="text-lg md:text-xl font-medium text-zinc-600 dark:text-zinc-300 break-all">{item.val}</p>
-              </motion.a>
+<p className="text-sm md:text-base font-medium text-zinc-600 dark:text-zinc-300 " title={item.val}>
+  {item.val}
+</p>              </motion.a>
             ))}
           </div>
 

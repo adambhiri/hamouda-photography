@@ -22,7 +22,7 @@ const Home: React.FC<Props> = ({ slides, packs, portfolioItems }) => {
       </div>
 
       {/* 3. About Section - Negative margin to pull it up over the Stack's empty scroll space */}
-      <section className="relative z-20 -mt-[100vh] bg-white dark:bg-black py-20 md:py-32 transition-colors duration-500">
+      <section className="relative z-20 -mt-[180vh] md:-mt-[200vh] bg-white dark:bg-black py-8 md:py-16 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20 items-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -54,15 +54,15 @@ const Home: React.FC<Props> = ({ slides, packs, portfolioItems }) => {
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="order-1 lg:order-2"
+            className="order-1 lg:order-2 lg:-top-16 relative"
           >
             <div className="relative group">
               <img
-                src="/assets/images/hero-image.png" 
+                src="/assets/images/HAMOUDAHERO.jpeg" 
                 alt="Hamdi at work"
-                className="w-full aspect-[4/5] object-cover grayscale hover:grayscale-0 transition-all duration-1000 rounded-sm shadow-xl"
+                className="mt-80 w-full max-w-md xl:max-w-lg mx-auto aspect-[3/4] object-cover grayscale hover:grayscale-0 transition-all duration-1000 rounded-sm "
               />
-              <div className="absolute inset-0 border border-black/5 dark:border-white/5 pointer-events-none rounded-sm"></div>
+              
             </div>
           </motion.div>
         </div>

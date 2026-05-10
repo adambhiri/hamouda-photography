@@ -89,7 +89,7 @@ const Sidebar = () => {
 
 
 // --- SETTINGS / DATA VIEW ---
-const SettingsView = ({ packs, bookings, slides, contact, users }: AdminProps) => {
+/*const SettingsView = ({ packs, bookings, slides, contact, users }: AdminProps) => {
     const [syncing, setSyncing] = useState(false);
 
     const exportData = () => {
@@ -195,7 +195,7 @@ const SettingsView = ({ packs, bookings, slides, contact, users }: AdminProps) =
         </div>
     );
 };
-
+*/
 
 // --- DASHBOARD VIEW ---
 // @ts-ignore
@@ -342,11 +342,19 @@ const DashboardView = ({ bookings, users, packs }: { bookings: Booking[], users:
     );
 };
 
-// --- CALENDAR VIEW ---
 const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], setBookings: React.Dispatch<React.SetStateAction<Booking[]>>, packs: Pack[] }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // 1. STATE LOCAL: Kol chay ysir houni bech n-stoppiw el auto-save el ghalat
+    const [localBookings, setLocalBookings] = useState<Booking[]>(bookings);
+
+    // Sync localBookings ken el parent (App.tsx) baddel el data mel barra (Refresh)
+    useEffect(() => {
+        setLocalBookings(bookings);
+    }, [bookings]);
 
     // State for Form
     const [editingId, setEditingId] = useState<number | string | null>(null);
@@ -365,18 +373,41 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
     const firstDay = new Date(year, month, 1).getDay();
     const monthName = currentDate.toLocaleString('default', { month: 'long' });
 
-    // Function to check if day is closed
-    const isDayClosed = (dateStr: string) => bookings.some(b => b.date === dateStr && b.status === 'cancelled' && b.clientName === '--- JOURNÉE CLÔTURÉE ---');
+    // --- LOGIC: IS DAY CLOSED ---
+ const isDayClosed = (dateStr: string) => 
+    localBookings.some(b => 
+        b.date === dateStr && 
+        (b.clientName === '--- JOURNÉE CLÔTURÉE ---' || (b as any).client_name === '--- JOURNÉE CLÔTURÉE ---')
+    );
 
+    // --- SYNCHRONISATION GLOBALE ---
+  const handleGlobalSave = async () => {
+    if (!selectedDate) return;
+    setSaving(true);
+    try {
+        // نبعثوا الـ state الحاضر توا للـ DB
+        await db.saveBookings(localBookings, selectedDate);
+        
+        // نـنـاديـوا لـلـ App.tsx بـاش يـعـاود يـجـبـد الـ Data الـجـديـدة (Reload)
+        // بـاش الـ Refresh يـولـي يـخـدم صـحـيـح
+        setBookings([...localBookings]); 
+        
+        alert("✅ Enregistré avec succès !");
+    } catch (err) {
+        alert("🔴 Erreur de synchronisation.");
+    } finally {
+        setSaving(false);
+    }
+};
     const resetForm = () => {
         setEditingId(null);
         setFormData({ clientName: '', packId: packs[0]?.id || '', description: '', time: '10:00', priceOverride: '', team: 'officielle' });
     };
 
-    const handleSaveBooking = async () => {
+    const handleSaveBooking = () => {
         if (!selectedDate || !formData.clientName) return;
+        
         const bookingBase = {
-            user_id: 'admin_manual',
             clientName: formData.clientName,
             date: selectedDate,
             time: formData.time,
@@ -388,21 +419,21 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
 
         let updated;
         if (editingId) {
-            updated = bookings.map(b => b.id === editingId ? { ...b, ...bookingBase } : b);
+            updated = localBookings.map(b => b.id === editingId ? { ...b, ...bookingBase } : b);
         } else {
             const newBooking: Booking = { ...bookingBase, id: Date.now() };
-            updated = [...bookings, newBooking];
+            updated = [...localBookings, newBooking];
         }
-        setBookings(updated);
-        await db.saveBookings(updated);
+        
+        setLocalBookings(updated);
         resetForm();
     };
 
-    const toggleDayCloture = async (dateStr: string) => {
+    const toggleDayCloture = (dateStr: string) => {
         const closed = isDayClosed(dateStr);
         let updated;
         if (closed) {
-            updated = bookings.filter(b => !(b.date === dateStr && b.clientName === '--- JOURNÉE CLÔTURÉE ---'));
+            updated = localBookings.filter(b => !(b.date === dateStr && (b.clientName === '--- JOURNÉE CLÔTURÉE ---' || (b as any).client_name === '--- JOURNÉE CLÔTURÉE ---')));
         } else {
             const closureMarker: Booking = {
                 id: `cloture-${dateStr}`,
@@ -411,93 +442,43 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
                 status: 'cancelled',
                 team: 'system'
             };
-            updated = [...bookings, closureMarker];
+            updated = [...localBookings, closureMarker];
         }
-        setBookings(updated);
-        await db.saveBookings(updated);
+        setLocalBookings(updated);
     };
+
     const handleEditClick = (b: Booking) => {
         setEditingId(b.id);
         setFormData({
-            clientName: b.clientName,
+            clientName: b.clientName || (b as any).client_name,
             packId: b.pack_id || packs[0]?.id || '',
             description: b.description || '',
             time: b.time || '10:00',
-            priceOverride: b.priceOverride || '',
+            priceOverride: b.priceOverride || (b as any).price_override || '',
             team: b.team || 'officielle'
         });
-    };
-
-    const generateInvoice = (b: Booking) => {
-        const doc = new jsPDF();
-        const pack = packs.find(p => p.id === b.pack_id);
-        doc.setFillColor(0, 0, 0);
-        doc.rect(0, 0, 210, 50, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("times", "bold");
-        doc.setFontSize(24);
-        doc.text("HAMDI HAMOUDA", 105, 22, { align: 'center' });
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(180, 180, 180);
-        doc.text("PHOTOGRAPHY", 105, 30, { align: 'center' });
-        doc.setFontSize(8);
-        doc.text("STUDIO PROFESSIONNEL", 105, 38, { align: 'center' });
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text(`DATE D'ÉMISSION: ${new Date().toLocaleDateString('fr-FR')}`, 14, 60);
-        doc.text(`RÉFÉRENCE: #INV-${b.id.toString().slice(-5).toUpperCase()}`, 14, 65);
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.8);
-        doc.line(14, 70, 40, 70);
-        doc.setFontSize(11);
-        doc.text("CLIENT:", 14, 80);
-        doc.setFont("times", "bold");
-        doc.setFontSize(14);
-        doc.text(b.clientName.toUpperCase(), 14, 87);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Séance prévue le: ${b.date} à ${b.time}`, 14, 94);
-        const items = [[
-            { content: pack?.name || 'Service Photographie', styles: { fontStyle: 'bold' as const, cellPadding: { top: 6, left: 5, right: 5, bottom: 2 } } },
-            { content: `${b.priceOverride || pack?.price || '---'} TND`, rowSpan: 2, styles: { halign: 'right' as const, fontStyle: 'bold' as const, verticalAlign: 'middle' as const, cellPadding: 5 } }
-        ],[
-            { content: b.description ? `Projet: ${b.description}` : '', styles: { fontSize: 9, textColor: [100, 100, 100], fontStyle: 'italic' as const, cellPadding: { top: 4, left: 5, right: 5, bottom: 5 } } }
-        ]];
-        autoTable(doc, {
-            head: [['DÉSIGNATION / PROJET', 'PRIX TOTAL']],
-            body: items as any,
-            startY: 105,
-            theme: 'grid',
-            headStyles: { fillColor: [0, 0, 0], textColor: 255, fontStyle: 'bold' as any, halign: 'center' as any },
-            styles: { overflow: 'linebreak', cellWidth: 'wrap' },
-            columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 42 } }
-        });
-        const finalY = (doc as any).lastAutoTable?.finalY || 160;
-        doc.setFont("helvetica", "bold");
-        doc.text("TOTAL À PAYER:", 140, finalY + 10);
-        doc.text(`${pack?.price || b.priceOverride || '---'} TND`, 196, finalY + 10, { align: 'right' });
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("times", "italic");
-        doc.text("Merci de votre confiance.", 105, finalY + 25, { align: 'center' });
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(150, 150, 150);
-        doc.text("Hamdi Hamouda Photography | M'saken, Sousse", 105, finalY + 33, { align: 'center' });
-        doc.save(`Facture_${b.clientName}.pdf`);
     };
 
     return (
         <div className="space-y-8 text-black dark:text-white transition-colors">
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-serif">Gestion Planning</h2>
-                <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 px-6 py-3 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors">
-                    <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="hover:text-zinc-600 dark:hover:text-zinc-400 transition"><ChevronLeft /></button>
-                    <span className="text-sm font-bold uppercase tracking-widest min-w-[150px] text-center">{monthName} {year}</span>
-                    <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="hover:text-zinc-600 dark:hover:text-zinc-400 transition"><ChevronRight /></button>
+                
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={handleGlobalSave}
+                        disabled={saving}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest transition shadow-lg disabled:opacity-50 flex items-center gap-2"
+                    >
+                        <Save size={14} />
+                        {saving ? "Synchronisation..." : "Enregistrer Planning"}
+                    </button>
+
+                    <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 px-6 py-3 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors">
+                        <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="hover:text-zinc-600 dark:hover:text-zinc-400 transition"><ChevronLeft /></button>
+                        <span className="text-sm font-bold uppercase tracking-widest min-w-[150px] text-center">{monthName} {year}</span>
+                        <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="hover:text-zinc-600 dark:hover:text-zinc-400 transition"><ChevronRight /></button>
+                    </div>
                 </div>
             </div>
 
@@ -510,28 +491,37 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1;
                         const dStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                        const dayBookings = bookings.filter(b => b.date === dStr && b.clientName !== '--- JOURNÉE CLÔTURÉE ---').sort((a, b) => (a.time || '').localeCompare(b.time || ''));
                         const closed = isDayClosed(dStr);
+                        
+                        const dayBookings = closed 
+                            ? [] 
+                            : localBookings.filter(b => b.date === dStr && b.clientName !== '--- JOURNÉE CLÔTURÉE ---' && (b as any).client_name !== '--- JOURNÉE CLÔTURÉE ---')
+                                           .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
                         return (
                             <div
                                 key={day}
                                 onClick={() => { setSelectedDate(dStr); setShowModal(true); resetForm(); }}
-                                className={`h-32 border border-zinc-200 dark:border-zinc-900 rounded-lg p-3 text-xs flex flex-col gap-1 hover:border-zinc-400 cursor-pointer transition relative ${closed ? 'bg-zinc-100 dark:bg-zinc-900/50 grayscale opacity-60' : 'bg-transparent'}`}
+                                className={`h-32 border border-zinc-200 dark:border-zinc-900 rounded-lg p-3 text-xs flex flex-col gap-1 hover:border-zinc-400 cursor-pointer transition relative ${
+                                    closed ? 'bg-red-500/10 dark:bg-red-900/20 border-red-200 dark:border-red-900/30' : 'bg-transparent'
+                                }`}
                             >
                                 <div className="flex justify-between items-start mb-1">
                                     <span className={`font-bold text-sm ${dayBookings.length > 0 ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-700'}`}>{day}</span>
-                                    {closed && <Lock size={10} className="text-red-500" />}
+                                    {closed && <Lock size={12} className="text-red-500" />}
                                 </div>
-                                {dayBookings.map(b => (
-                                    <div key={b.id} className={`p-1.5 rounded text-[7px] font-bold uppercase tracking-tighter truncate leading-none border ${
-                                        b.team === 'equipe_b' 
-                                        ? 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400' 
-                                        : 'bg-black text-white dark:bg-white dark:text-black border-transparent shadow-sm'
-                                    }`}>
-                                        {b.time} - {b.clientName}
+
+                                {closed ? (
+                                    <div className="flex-grow flex items-center justify-center">
+                                        <span className="text-[8px] font-black text-red-500 uppercase tracking-tighter opacity-60">Clôturée</span>
                                     </div>
-                                ))}
+                                ) : (
+                                    dayBookings.map(b => (
+                                        <div key={b.id} className="truncate bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">
+                                            {b.time} - {b.clientName || (b as any).client_name}
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         );
                     })}
@@ -540,14 +530,12 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
 
             <AnimatePresence>
                 {showModal && selectedDate && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-white/80 dark:bg-black/98 backdrop-blur-md flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-white/80 dark:bg-black/98 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 w-full max-w-5xl h-[90vh] flex rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-
-                            {/* LEFT: FORM SIDE */}
+                            
                             <div className="w-1/3 border-r border-zinc-200 dark:border-zinc-800 p-8 flex flex-col gap-6 bg-zinc-50 dark:bg-zinc-900/50">
                                 <h3 className="text-xl font-serif text-black dark:text-white">{editingId ? "Modifier le RDV" : "Nouveau RDV"}</h3>
                                 
-                                {/* TOGGLE CLOTURE */}
                                 <div className="flex items-center justify-between p-3 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg">
                                     <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Statut Journée</span>
                                     <button 
@@ -566,7 +554,7 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
                                         <option value="equipe_b">Deuxième Équipe (B)</option>
                                     </select>
                                     <select className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none rounded text-zinc-700 dark:text-zinc-300 focus:border-black dark:focus:border-white transition" value={formData.packId} onChange={e => setFormData({ ...formData, packId: e.target.value })}>
-                                        {packs.map(p => <option key={p.id} value={p.id}>{p.name} - {p.price}</option>)}
+                                        {packs.map(p => <option key={p.id} value={p.id}>{p.name} - {p.price} TND</option>)}
                                     </select>
                                     <textarea placeholder="Description / Notes" className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm outline-none focus:border-black dark:focus:border-white rounded resize-none text-black dark:text-white h-32 transition" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                                 </div>
@@ -577,32 +565,38 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
                                 </div>
                             </div>
 
-                            {/* RIGHT: LIST SIDE */}
                             <div className="w-2/3 p-8 flex flex-col relative bg-white dark:bg-black/50">
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-xl font-serif text-black dark:text-white">Réservations du {selectedDate}</h3>
                                     <button onClick={() => setShowModal(false)} className="text-zinc-500 hover:text-black dark:hover:text-white p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full"><X size={20} /></button>
                                 </div>
                                 <div className="space-y-4 overflow-y-auto flex-grow pr-2">
-                                    {bookings.filter(b => b.date === selectedDate && b.clientName !== '--- JOURNÉE CLÔTURÉE ---').sort((a, b) => (a.time || '').localeCompare(b.time || '')).map(b => (
+                                    {localBookings.filter(b => b.date === selectedDate && b.clientName !== '--- JOURNÉE CLÔTURÉE ---' && (b as any).client_name !== '--- JOURNÉE CLÔTURÉE ---').sort((a, b) => (a.time || '').localeCompare(b.time || '')).map(b => (
                                         <div key={b.id} onClick={() => handleEditClick(b)} className={`border p-6 rounded-xl relative group cursor-pointer transition-all duration-300 hover:shadow-xl ${editingId === b.id ? 'bg-zinc-100 dark:bg-zinc-900 border-black dark:border-white ring-1 ring-black dark:ring-white' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 hover:border-zinc-500 dark:hover:border-zinc-600'}`}>
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <p className="font-bold text-lg text-black dark:text-white">{b.clientName}</p>
+                                                    <p className="font-bold text-lg text-black dark:text-white">{b.clientName || (b as any).client_name}</p>
                                                     <div className="flex flex-wrap items-center gap-2 mt-1">
                                                         <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">{b.time} | {packs.find(p => p.id === b.pack_id)?.name}</p>
                                                         <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border ${b.team === 'equipe_b' ? 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-black/5 dark:bg-white/10 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300'}`}>{b.team === 'equipe_b' ? 'Équipe B' : 'Officielle'}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <button onClick={(e) => { e.stopPropagation(); generateInvoice(b); }} className="p-2 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition"><Download size={16} /></button>
-                                                    <button onClick={async (e) => { e.stopPropagation(); if (confirm(`Supprimer la réservation pour "${b.clientName}"?`)) { await db.deleteBooking(b.id); setBookings(bookings.filter(item => item.id !== b.id)); if (editingId === b.id) resetForm(); }}} className="p-2 text-zinc-400 hover:text-red-500 bg-zinc-100 dark:bg-zinc-900 hover:bg-red-500/10 rounded-lg transition"><Trash2 size={16} /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); /* handle invoice */ }} className="p-2 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition"><Download size={16} /></button>
+                                                    <button onClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        if (confirm(`Supprimer la réservation?`)) { 
+                                                          setLocalBookings(localBookings.filter(item => item.id !== b.id)); 
+                                                          if (editingId === b.id) resetForm(); 
+                                                        }
+                                                      }} className="p-2 text-zinc-400 hover:text-red-500 bg-zinc-100 dark:bg-zinc-900 hover:bg-red-500/10 rounded-lg transition">
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            {b.description && <p className="text-sm text-zinc-400 mt-4 italic border-l-2 border-zinc-800 pl-4 break-all">{b.description}</p>}
                                         </div>
                                     ))}
-                                    {bookings.filter(b => b.date === selectedDate && b.clientName !== '--- JOURNÉE CLÔTURÉE ---').length === 0 && (
+                                    {localBookings.filter(b => b.date === selectedDate && b.clientName !== '--- JOURNÉE CLÔTURÉE ---').length === 0 && (
                                         <div className="flex flex-col items-center justify-center h-full text-zinc-600 pb-20">
                                             <CalendarIcon size={48} className="mb-4 opacity-20" />
                                             <p className="font-serif italic">Aucune réservation.</p>
@@ -617,174 +611,276 @@ const CalendarView = ({ bookings, setBookings, packs }: { bookings: Booking[], s
         </div>
     );
 };
-
 // --- PACKS MANAGEMENT (Admin Side) ---
-const PacksManagement = ({ packs, setPacks }: { packs: Pack[], setPacks: React.Dispatch<React.SetStateAction<Pack[]>> }) => (
-    <div className="space-y-10 text-black dark:text-white transition-colors pb-10">
-        <div className="flex justify-between items-end border-b border-zinc-200 dark:border-zinc-800 pb-6">
-            <div>
-                <h2 className="text-4xl font-serif tracking-tight">Gestion des Packs</h2>
-                <p className="text-zinc-500 text-sm mt-2 font-medium">Configurez vos offres et marquez le pack "Populaire".</p>
-            </div>
-            <button
-                onClick={async () => {
-                    const newPackData = { name: 'Nouveau Pack', price: '0 DT', features: ['Feature 1'], popularity: false};
-                    const addedPack = await db.addPack(newPackData);
-                    if (addedPack) setPacks([...packs, addedPack]);
-                }}
-                className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] hover:scale-105 transition-transform shadow-lg active:scale-95"
-            >
-                <Plus size={16} strokeWidth={3} /> Nouveau Pack
-            </button>
-        </div>
+const PacksManagement = ({ packs, setPacks }: { packs: Pack[], setPacks: React.Dispatch<React.SetStateAction<Pack[]>> }) => {
+    const [localPacks, setLocalPacks] = useState<Pack[]>(packs);
+    const [isSaving, setIsSaving] = useState(false);
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
-            {packs.map((pack, idx) => (
-                <div key={pack.id} className={`group relative p-8 rounded-3xl border transition-all duration-500 shadow-sm hover:shadow-2xl ${pack.popularity ? 'border-fuchsia-500/50 bg-fuchsia-50/10 dark:bg-fuchsia-900/5' : 'bg-white dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800/50'}`}>
-                    
-           {/* Toggle Popularité (Boolean Version) */}
-<div className="absolute top-6 right-16 flex items-center gap-2">
-    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">
-        {pack.popularity ? '🔥 Vedette' : 'Normal'}
-    </span>
-    <button 
-        onClick={async () => {
-            const next = [...packs];
-            //  Toggle el status (True -> False / False -> True)
-            const newStatus = !next[idx].popularity;
-            next[idx].popularity = newStatus;
+    // Function bech n-sajlou kol chay marra wa7da
+    const saveAllPacks = async () => {
+        setIsSaving(true);
+        try {
+            setPacks(localPacks); // Updati el Parent state
+            // @ts-ignore
+            await db.savePacks(localPacks); // Updati el DB
+            alert("✅ Configuration des packs enregistrée !");
+        } catch (err) {
+            alert("🔴 Erreur de sauvegarde");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    // Sync m3a el parent ken l-parent fetch data jdid
+    useEffect(() => {
+        setLocalPacks(packs);
+    }, [packs]);
+   const handleAddPack = () => {
+    const newPack: Pack = { 
+        id: Date.now().toString(), 
+        name: 'Nouveau Pack', 
+        price: '0', 
+        features: [],
+        popularity: false // Zedna hedhi bech t-satisfayi el Interface
+    };
+    
+    setLocalPacks([...localPacks, newPack]);
+};
+    const handleUpdatePack = (id: string, field: keyof Pack, value: string) => {
+        setLocalPacks(localPacks.map(p => p.id === id ? { ...p, [field]: value } : p));
+    };
+   const handleDeletePack = async (id: string, name: string) => {
+    if (confirm(`Supprimer "${name}"?`)) {
+        // 1. نحيه م الـ Interface طول باش اليوزر ما يستناش
+        setLocalPacks(localPacks.filter(p => p.id !== id));
+        
+        // 2. فـسـخـوا م الـ Database حقيقة
+        // @ts-ignore
+        const { error } = await db.deletePack(id); 
+        
+        if (error) {
+            alert("Erreur lors de la suppression en DB");
+            // اختياري: ترجع الـ pack للـ state لو فشلت الـ DB
+        }
+    }
+};
 
-            //  Update el UI toul (Optimistic)
-            setPacks(next);
-
-            //  Update Supabase (Column 'popularity' type bool)
-            try {
-                await db.updatePack(pack.id, { popularity: newStatus });
-                console.log("✅ Status updated in DB:", newStatus);
-            } catch (err) {
-                console.error("🔴 DB Error:", err);
-                // Rollback ken saret mochkla
-                next[idx].popularity = !newStatus;
-                setPacks([...next]);
-            }
-        }}
-        className={`w-10 h-5 rounded-full transition-all duration-300 relative ${
-            pack.popularity ? 'bg-fuchsia-600' : 'bg-zinc-300 dark:bg-zinc-700'
-        }`}
-    >
-        {/* El Kaboura (The Dot) */}
-        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 ${
-            pack.popularity ? 'left-6' : 'left-1'
-        }`} />
-    </button>
-</div>
-
+    return (
+        <div className="space-y-10 text-black dark:text-white transition-colors pb-10">
+            <div className="flex justify-between items-end border-b border-zinc-200 dark:border-zinc-800 pb-6">
+                <div>
+                    <h2 className="text-4xl font-serif tracking-tight">Gestion des Packs</h2>
+                    <p className="text-zinc-500 text-sm mt-2 font-medium">Configurez vos offres et marquez le pack "Populaire".</p>
+                </div>
+                
+                <div className="flex gap-4">
                     <button
-                        onClick={async () => {
-                            if (confirm(`Fasakh "${pack.name}"?`)) {
-                                await db.deletePack(pack.id);
-                                setPacks(packs.filter(p => p.id !== pack.id));
-                            }
-                        }}
-                        className="absolute top-6 right-6 p-2 text-zinc-300 hover:text-red-500"
+                        onClick={saveAllPacks}
+                        disabled={isSaving}
+                        className="bg-fuchsia-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] hover:bg-fuchsia-700 transition shadow-lg disabled:opacity-50"
                     >
-                        <Trash2 size={18} />
+                        {isSaving ? "Synchronisation..." : "Enregistrer Tout"}
                     </button>
 
-                    <div className="space-y-6">
-                        <div className="space-y-1">
-                            <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-bold">Nom du Service</span>
-                            <input 
-                                className="bg-transparent text-2xl font-serif outline-none w-full border-b border-transparent focus:border-zinc-300 pb-1" 
-                                value={pack.name} 
-                                onChange={e => { const next = [...packs]; next[idx].name = e.target.value; setPacks(next); }} 
-                            />
+                    <button
+                        onClick={() => {
+                            const newPack: Pack = { 
+                                id: Date.now().toString(), 
+                                name: 'Nouveau Pack', 
+                                price: '0 DT', 
+                                features: ['Feature 1'], 
+                                popularity: false 
+                            };
+                            setLocalPacks([...localPacks, newPack]);
+                        }}
+                        className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] hover:scale-105 transition-transform shadow-lg active:scale-95"
+                    >
+                        <Plus size={16} strokeWidth={3} /> Nouveau Pack
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
+                {/* --- NESTA3MLOU localPacks HOUNI --- */}
+                {localPacks.map((pack, idx) => (
+                    <div key={pack.id} className={`group relative p-8 rounded-3xl border transition-all duration-500 shadow-sm hover:shadow-2xl ${pack.popularity ? 'border-fuchsia-500/50 bg-fuchsia-50/10 dark:bg-fuchsia-900/5' : 'bg-white dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800/50'}`}>
+                        
+                        <div className="absolute top-6 right-16 flex items-center gap-2">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">
+                                {pack.popularity ? '🔥 Vedette' : 'Normal'}
+                            </span>
+                            <button 
+                                onClick={() => {
+                                    const next = [...localPacks];
+                                    next[idx].popularity = !next[idx].popularity;
+                                    setLocalPacks(next);
+                                }}
+                                className={`w-10 h-5 rounded-full transition-all duration-300 relative ${pack.popularity ? 'bg-fuchsia-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
+                            >
+                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 ${pack.popularity ? 'left-6' : 'left-1'}`} />
+                            </button>
                         </div>
 
-                        <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl">
-                            <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-bold block mb-1">Tarif</span>
-                            <input 
-                                className="bg-transparent text-3xl font-bold outline-none w-full" 
-                                value={pack.price} 
-                                onChange={e => { const next = [...packs]; next[idx].price = e.target.value; setPacks(next); }} 
-                            />
-                        </div>
+                        <button
+    onClick={() => handleDeletePack(pack.id, pack.name)}
+    className="absolute top-6 right-6 p-2 text-zinc-300 hover:text-red-500"
+>
+    <Trash2 size={18} />
+</button>
 
-                        {/* Features Loop... (yokeed kima houa) */}
-                        <div className="space-y-4">
-                            {pack.features.map((f, fIdx) => (
-                                <div key={fIdx} className="flex items-center gap-3">
-                                    <input 
-                                        className="bg-transparent border-b border-zinc-100 dark:border-zinc-800 text-sm outline-none w-full py-1" 
-                                        value={f} 
-                                        onChange={e => { const next = [...packs]; next[idx].features[fIdx] = e.target.value; setPacks(next); }} 
-                                    />
-                                </div>
-                            ))}
+                        <div className="space-y-6">
+                            <div className="space-y-1">
+                                <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-bold">Nom du Service</span>
+                                <input 
+                                    className="bg-transparent text-2xl font-serif outline-none w-full border-b border-transparent focus:border-zinc-300 pb-1" 
+                                    value={pack.name} 
+                                    onChange={e => { const next = [...localPacks]; next[idx].name = e.target.value; setLocalPacks(next); }} 
+                                />
+                            </div>
+
+                            <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl">
+                                <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-bold block mb-1">Tarif</span>
+                                <input 
+                                    className="bg-transparent text-3xl font-bold outline-none w-full" 
+                                    value={pack.price} 
+                                    onChange={e => { const next = [...localPacks]; next[idx].price = e.target.value; setLocalPacks(next); }} 
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-bold block">Inclusions</span>
+                                {pack.features.map((f, fIdx) => (
+                                    <div key={fIdx} className="flex items-center gap-3">
+                                        <input 
+                                            className="bg-transparent border-b border-zinc-100 dark:border-zinc-800 text-sm outline-none w-full py-1" 
+                                            value={f} 
+                                            onChange={e => { 
+                                                const next = [...localPacks]; 
+                                                next[idx].features[fIdx] = e.target.value; 
+                                                setLocalPacks(next); 
+                                            }} 
+                                        />
+                                        <button 
+                                            onClick={() => {
+                                                const next = [...localPacks];
+                                                next[idx].features = next[idx].features.filter((_, i) => i !== fIdx);
+                                                setLocalPacks(next);
+                                            }}
+                                            className="text-zinc-300 hover:text-red-500 transition-colors"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                                
+                                <button
+                                    onClick={() => {
+                                        const next = [...localPacks];
+                                        next[idx].features.push(""); 
+                                        setLocalPacks(next);
+                                    }}
+                                    className="mt-2 flex items-center gap-2 text-[9px] uppercase tracking-widest font-bold text-fuchsia-600 hover:text-fuchsia-500 transition-colors"
+                                >
+                                    <Plus size={12} /> Ajouter une ligne
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
-        </div>
-    </div>
-);
-// --- SLIDES MANAGEMENT ---
-const SlidesManagement = ({ slides, setSlides }: { slides: Slide[], setSlides: React.Dispatch<React.SetStateAction<Slide[]>> }) => (
-    <div className="space-y-10 text-black dark:text-white transition-colors pb-10">
-        
-        {/* Header Section */}
-        <div className="flex justify-between items-end border-b border-zinc-200 dark:border-zinc-800 pb-6">
-            <div>
-                <h2 className="text-4xl font-serif tracking-tight">Slides du Home</h2>
-                <p className="text-zinc-500 text-sm mt-2 font-medium">Gérez les images héroïnes de votre page d'accueil.</p>
+                ))}
             </div>
-            <button
-                onClick={() =>
-                    setSlides([
-                        ...slides,
-                        {
-                            id: Date.now().toString(),
-                            url: slides[0]?.url || '',
-                            title: 'Nouvelle Slide',
-                            posY: 50
-                        }
-                    ])
-                }
-                className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] hover:scale-105 transition-transform shadow-lg active:scale-95"
-            >
-                <Plus size={16} strokeWidth={3} /> Ajouter Slide
-            </button>
         </div>
+    );
+};
+// --- SLIDES MANAGEMENT ---
+const SlidesManagement = ({ slides, setSlides }: { slides: Slide[], setSlides: React.Dispatch<React.SetStateAction<Slide[]>> }) => {
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
-        {/* Slides Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {slides.map((slide, idx) => (
-                <div key={slide.id} className="group bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-800/50 shadow-sm hover:shadow-2xl transition-all duration-500 relative">
+    // 🟢 HELPER: باش تطلع التصويرة واضحة (Best Quality) وخفيفة فرد وقت
+    const getOptimizedUrl = (url: string) => {
+        if (!url.includes('cloudinary.com')) return url;
+        // f_auto: Format auto, q_auto:best: أحسن جودة ممكنة، dpr_auto: وضوح عالي للشاشات القوية
+        return url.replace('/upload/', '/upload/f_auto,q_auto:best,dpr_auto/');
+    };
+
+    // 1. AJOUTER (Cloudinary direct + Local State)
+    const handleAddSlide = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        const url = await db.uploadPortfolioFile(file);
+        if (url) {
+            const newSlide: Slide = {
+                id: `temp-${Date.now()}`, 
+                url: url,
+                title: 'Nouvelle Slide',
+                posY: 50
+            };
+            setSlides(prev => [...prev, newSlide]);
+        }
+        setUploading(false);
+    };
+
+    // 2. ENREGISTRER (L-waqt el wa7id eli Supabase tetkallem fih)
+    const handleSyncManual = async () => {
+        setSaving(true);
+        try {
+            const data = await db.saveSlides(slides);
+            if (data) {
+                const synced = data.map(s => ({
+                    id: s.id, url: s.url, title: s.title, posY: s.pos_y
+                }));
+                setSlides(synced);
+                alert("✅ Database mise à jour !");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("🔴 Erreur Supabase");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-8 pb-10">
+            {/* Header section avec les boutons */}
+            <div className="flex justify-between items-center border-b pb-6">
+                <h2 className="text-3xl font-serif">Slides Home</h2>
+                <div className="flex gap-4">
+                    <label className="cursor-pointer bg-zinc-100 dark:bg-zinc-800 px-6 py-2 rounded-xl font-bold text-[10px] uppercase">
+                        {uploading ? "Upload Cloudinary..." : "+ Ajouter Image"}
+                        <input type="file" className="hidden" accept="image/*" onChange={handleAddSlide} disabled={uploading} />
+                    </label>
                     
-                    {/* Image Preview Container */}
+                    <button 
+                        onClick={handleSyncManual}
+                        disabled={saving}
+                        className="bg-black dark:bg-white text-white dark:text-black px-8 py-2 rounded-xl font-bold text-[10px] uppercase shadow-xl"
+                    >
+                        {saving ? "Enregistrement..." : "Enregistrer Tout"}
+                    </button>
+                </div>
+            </div>
 
-<div className="relative h-64 overflow-hidden bg-zinc-100 dark:bg-zinc-800 rounded-2xl">
-  {/* IMAGE FIL ADMIN - SlidesManagement.tsx */}
-<img
-    src={slide.url}
-    
-    style={{ objectPosition: `50% ${slide.posY ?? 50}%` }}
-    className="w-full h-48 object-cover opacity-80 dark:opacity-50 transition group-hover:opacity-100"
-/>
-    
-    {/* Overlay Line bech nchouf el Focus Focus win s7i7 */}
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-full h-[1px] bg-white/30 border-b border-black/10"></div>
-    </div>
-</div>
-                       
+            {/* Grid des Cards */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {slides.map((slide, idx) => (
+                    <div key={slide.id} className="bg-white dark:bg-zinc-900 rounded-[2rem] p-4 border border-zinc-100 dark:border-zinc-800 shadow-sm">
+                        
+                        {/* Preview Image - 🟢 نـسـتـعـمـلـوا الـ Optimized URL هـونـي */}
+                        <div className="relative h-48 overflow-hidden rounded-2xl bg-zinc-100 mb-6">
+                            <img 
+                                src={getOptimizedUrl(slide.url)} 
+                                style={{ objectPosition: `50% ${slide.posY ?? 50}%` }} 
+                                className="w-full h-full object-cover" 
+                                alt={slide.title}
+                            />
+                        </div>
 
-                    <div className="p-6 space-y-6">
-                        {/* Title Input */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase tracking-widest text-zinc-400 font-black">Titre de la Slide</label>
+                        <div className="space-y-4">
+                            <label className="text-[9px] font-black text-zinc-400 uppercase">Titre</label>
                             <input
-                                className="bg-transparent border-b border-zinc-200 dark:border-zinc-800 text-lg font-serif w-full outline-none focus:border-black dark:focus:border-white transition-all text-black dark:text-white pb-1"
+                                className="bg-transparent border-b w-full outline-none font-serif text-lg pb-1"
                                 value={slide.title}
                                 onChange={e => {
                                     const next = [...slides];
@@ -792,76 +888,34 @@ const SlidesManagement = ({ slides, setSlides }: { slides: Slide[], setSlides: R
                                     setSlides(next);
                                 }}
                             />
-                        </div>
 
-                        {/* Position Control (Range slider styled) */}
-                        <div className="space-y-3 bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                            <div className="flex justify-between items-center">
-                                <label className="text-[10px] uppercase tracking-widest text-zinc-400 font-black">Focus Vertical</label>
-                                <span className="text-[10px] font-mono text-zinc-500">{slide.posY ?? 50}%</span>
+                            <div className="flex justify-between text-[9px] font-black text-zinc-400 uppercase">
+                                <span>Focus Vertical</span>
+                                <span>{slide.posY}%</span>
                             </div>
                             <input
-                                type="range"
-                                min="0"
-                                max="100"
+                                type="range" min="0" max="100"
                                 value={slide.posY ?? 50}
-                                onChange={(e) => {
+                                onChange={e => {
                                     const next = [...slides];
                                     next[idx].posY = Number(e.target.value);
                                     setSlides(next);
                                 }}
-                                className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-black dark:accent-white"
+                                className="w-full accent-black dark:accent-white"
                             />
                         </div>
-
-                        {/* Actions (Upload & Delete) */}
-                        <div className="flex items-center justify-between pt-2">
-                            <label className="cursor-pointer flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-black dark:hover:text-white transition-colors">
-                                <Camera size={14} />
-                                Remplacer
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={e => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            const reader = new FileReader();
-                                            reader.onload = () => {
-                                                const next = [...slides];
-                                                next[idx].url = reader.result as string;
-                                                setSlides(next);
-                                            };
-                                            reader.readAsDataURL(file);
-                                        }
-                                    }}
-                                />
-                            </label>
-
-                            <button
-                                onClick={async () => {
-                                    if (confirm(`Supprimer le slide "${slide.title}"?`)) {
-                                        await db.deleteSlide(slide.id);
-                                        setSlides(slides.filter(s => s.id !== slide.id));
-                                    }
-                                }}
-                                className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full"
-                                title="Supprimer la slide"
-                            >
-                                <Trash2 size={16} />
-                            </button>
-                        </div>
                     </div>
-                </div>
-            ))}
+                ))}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 // --- PORTFOLIO MANAGEMENT ---
 const PortfolioManagement = ({ items, setItems }: { items: PortfolioItem[], setItems: React.Dispatch<React.SetStateAction<PortfolioItem[]>> }) => {
     const [uploading, setUploading] = useState(false);
     const [newItem, setNewItem] = useState<Partial<PortfolioItem>>({ category: 'Wedding', type: 'image', title: '' });
-
+    const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
+    
     // Sauvegarde auto
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -882,24 +936,40 @@ const PortfolioManagement = ({ items, setItems }: { items: PortfolioItem[], setI
             thumbnail: newItem.type === 'video' ? newItem.thumbnail : undefined
         };
 
-        const addedItem = await db.addPortfolioItem(itemData);
+        const addedItem = await db.addPortfolioItem(itemData, portfolioFile!);
         if (addedItem) {
             setItems([...items, addedItem]);
             setNewItem({ category: 'Wedding', type: 'image', title: '' });
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'url' | 'thumbnail') => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setUploading(true);
-        const publicUrl = await db.uploadPortfolioFile(file);
-        setUploading(false);
-        if (publicUrl) {
-            setNewItem(prev => ({ ...prev, [field]: publicUrl }));
-        }
-    };
+  
+const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'url' | 'thumbnail') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    setUploading(true);
+    try {
+        // 1. Upload to Cloudinary direct
+        const uploadedUrl = await db.uploadPortfolioFile(file);
+        
+        if (uploadedUrl) {
+            // 2. Update el state mta3 newItem bel URL elli rja3
+            setNewItem(prev => ({ ...prev, [target]: uploadedUrl }));
+            
+            // 3. Kenou el file el asly (mouch thumbnail), nkhaznouh fil state
+            if (target === 'url') {
+                setPortfolioFile(file);
+            }
+            console.log(`✅ ${target} uploaded to Cloudinary:`, uploadedUrl);
+        }
+    } catch (error) {
+        console.error("🔴 Erreur upload:", error);
+        alert("Erreur lors de l'upload vers Cloudinary");
+    } finally {
+        setUploading(false);
+    }
+};
     return (
         <div className="space-y-12 pb-20 text-black dark:text-white transition-colors">
             {/* Header Section */}
@@ -1217,32 +1287,10 @@ const handleSaveAll = async () => {
 const Admin: React.FC<AdminProps> = (props) => {
 
     // useEffect hooks bch nsajlou el data automatiquement
-    const useDebouncedEffect = (effect: () => void, deps: any[], delay: number) => {
-        const isInitialMount = useRef(true);
-        useEffect(() => {
-            if (isInitialMount.current) {
-                isInitialMount.current = false;
-                return;
-            }
-            const handler = setTimeout(() => effect(), delay);
-            return () => clearTimeout(handler);
-        }, deps);
-    };
+    
 
-    useDebouncedEffect(() => {
-        console.log("Auto-saving packs to Supabase...");
-        db.savePacks(props.packs);
-    }, [props.packs], 1000);
 
-    useDebouncedEffect(() => {
-        console.log("Auto-saving bookings to Supabase...");
-        db.saveBookings(props.bookings);
-    }, [props.bookings], 1000);
-
-    useDebouncedEffect(() => {
-        console.log("Auto-saving slides to Supabase...");
-        db.saveSlides(props.slides);
-    }, [props.slides], 1000);
+  
 useEffect(() => {
     const loadInitialData = async () => {
         try {
@@ -1355,8 +1403,8 @@ useEffect(() => {
                         </div>
                     } />
 
-                    {/* 8. Settings */}
-                    <Route path="/settings" element={<SettingsView {...props} />} />
+                    {/* 8. Settings 
+                    <Route path="/settings" element={<SettingsView {...props} />} />*/}
                 </Routes>
             </div>
         </div>

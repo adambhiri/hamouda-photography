@@ -64,9 +64,11 @@ const Navbar: React.FC<{ user: any, onLogout: () => void }> = ({ user, onLogout 
     <span className="text-sm md:text-xl lg:text-2xl uppercase">Hamouda</span>
   </div>
 
-  {/* PHOTOGRAPHY: Responsive Spacing */}
-  <div className="w-full flex items-center justify-center mt-1 md:mt-2">
-    <span className="text-[7px] md:text-[10px] font-light italic tracking-[0.3em] md:tracking-[0.6em] uppercase opacity-60 border-t border-zinc-200 dark:border-zinc-800 pt-1 w-full text-center">
+  {/* PHOTOGRAPHY: Responsive Spacing - HOUNI EL TBADIL */}
+  <div className="w-full flex items-center justify-center -mt-0.5 md:-mt-1"> 
+    {/* -mt-0.5 fil mobile w -mt-1 fil desktop bech tatla3 chwaya l-fou9 */}
+    <span className="text-[7px] md:text-[10px] font-light tracking-[0.3em] md:tracking-[0.6em] uppercase opacity-60 border-t border-zinc-200 dark:border-zinc-800 pt-0.5 w-full text-center">
+      {/* Na9asna chwaya fil pt-1 (padding top) zeda bech el khat y-i9reb lel klem */}
       Photography
     </span>
   </div>

@@ -4,7 +4,8 @@ import { Pack, Booking, Slide, ContactInfo, User, PortfolioItem } from '../types
 // Tes clés s7a7.
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL; 
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
-
+ const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; // Create an "Unsigned" preset in Cloudinary Settings
+const CLOUDINARY_CLOUD_NAME = 'dtklpdj4t';
 // On crée le client UNE SEULE FOIS.
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -68,12 +69,22 @@ async updatePack(id: string, updates: Partial<Pack>) {
   
   return data;
 },
-  async deletePack(packId: number | string) {
-    console.log(`🟡 Suppression du pack avec ID: ${packId}`);
-    const { error } = await supabase.from('packs').delete().eq('id', packId);
-    if (error) console.error("🔴 Erreur deletePack:", error);
-    else console.log("✅ Pack supprimé!");
-  },
+  async deletePack(packId: string) {
+    console.log(`🟡 Tentative de suppression du pack ID: ${packId}`);
+    
+    const { error, count } = await supabase
+        .from('packs')
+        .delete()
+        .eq('id', packId.toString()); // نضمنوا إنو مبعوث كـ string
+
+    if (error) {
+        console.error("🔴 Erreur Supabase deletePack:", error);
+        return { success: false, error };
+    }
+    
+    console.log("✅ Delete command executed. Rows affected:", count);
+    return { success: true };
+},
   async updatePopularity(packId: string, newPopularity: number) {
     const { data, error } = await supabase
       .from('packs')
@@ -91,22 +102,66 @@ async updatePack(id: string, updates: Partial<Pack>) {
 ,
 
   // --- BOOKINGS ---
-  async getBookings(): Promise<Booking[]> {
+ // --- BOOKINGS ---
+// db.ts
+async saveBookings(allBookings: Booking[], targetDate: string) {
+  if (!targetDate || targetDate === "undefined") {
+        console.warn("⚠️ SaveBookings annulé : targetDate est undefined.");
+        return false; 
+    }
+    try {
+        // 1. تفسخ كان النهار هذاكا
+        const { error: delError } = await supabase
+            .from('bookings')
+            .delete()
+            .eq('date', targetDate);
+
+        if (delError) throw delError;
+
+        // 2. تفرز الداتا متاع النهار هذاكا بركا من الـ state الكامل
+        const dayData = allBookings.filter(b => b.date === targetDate);
+
+        if (dayData.length > 0) {
+            const formatted = dayData.map(b => {
+                // نـحـيـوا الـ ID لـو كـان مـاهـوش رقـم (خـاطـر الـ DB تـعـطـي وحـدها)
+                const isManualId = typeof b.id === 'string' || b.id > 1000000000;
+                
+                return {
+                    client_name: b.clientName || (b as any).client_name,
+                    date: b.date,
+                    time: b.time || null,
+                    status: b.status || 'confirmed',
+                    pack_id: b.pack_id || null,
+                    description: b.description || '',
+                    team: b.team || '',
+                    price_override: b.priceOverride || null
+                };
+            });
+
+            const { error: insError } = await supabase.from('bookings').insert(formatted);
+            if (insError) throw insError;
+        }
+        return true;
+    } catch (error) {
+        console.error("Sync Error:", error);
+        throw error;
+    }
+},
+async getBookings(): Promise<Booking[]> {
     const { data, error } = await supabase.from('bookings').select('*');
     if (error) {
-      console.error("🔴 Erreur getBookings:", error);
-      throw error;
+        console.error("🔴 Erreur Fetch:", error);
+        return [];
     }
-    return data || [];
-  },
+    console.log("🟢 Data fetched from DB:", data);
 
-  async saveBookings(bookings: Booking[]) {
-    console.log("🟡 Tentative saveBookings (upsert)...", bookings);
-    const { error } = await supabase.from('bookings').upsert(bookings);
-    if (error) console.error("🔴 Erreur saveBookings:", error);
-    else console.log("✅ Bookings sauvegardés!");
-  },
-
+    return (data || []).map(b => ({
+        ...b,
+        id: b.id, // ID mta3 el DB tawa (1, 2, 3...)
+        clientName: b.client_name,
+        priceOverride: b.price_override
+    }));
+},
   async deleteBooking(bookingId: number | string) {
     console.log(`🟡 Suppression du booking avec ID: ${bookingId}`);
     const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
@@ -115,21 +170,56 @@ async updatePack(id: string, updates: Partial<Pack>) {
   },
 
   // --- SLIDES ---
-  async getSlides(): Promise<Slide[]> {
-    const { data, error } = await supabase.from('slides').select('*');
-    if (error) {
-      console.error("🔴 Erreur getSlides:", error);
-      throw error;
-    }
-    return data || [];
-  },
+ // --- SLIDES ---
+// Fil db object mte3ek
+async saveSlides(slides: Slide[]) {
+  if (!slides || slides.length === 0) return null;
 
-  async saveSlides(slides: Slide[]) {
-    console.log("🟡 Tentative saveSlides (upsert)...", slides);
-    const { error } = await supabase.from('slides').upsert(slides);
-    if (error) console.error("🔴 Erreur saveSlides:", error);
-    else console.log("✅ Slides sauvegardés!");
-  },
+  try {
+    // 1. فـسـخ كـل شـيء مـوجـود تـوا
+    // نـفـسـخـوا بـالـ ID بـاش نـفـرغـوا الـ Table
+    const { error: delError } = await supabase
+      .from('slides')
+      .delete()
+      .neq('url', 'placeholder'); // كـأنـك قـلـتـلـو "Delete All"
+
+    if (delError) throw delError;
+
+    // 2. حـضـر الـ Data لـلـصـبـان (مـن غـيـر ID بـاش الـ DB تـعـطـي وحـدها)
+    const slidesToSave = slides.map(s => ({
+      url: s.url,
+      title: s.title,
+      pos_y: s.posY ?? 50
+    }));
+
+    // 3. صـب الـ جـديـد
+    const { data, error: insError } = await supabase
+      .from('slides')
+      .insert(slidesToSave)
+      .select();
+
+    if (insError) throw insError;
+    return data;
+  } catch (error) {
+    console.error("🔴 Erreur saveSlides:", error);
+    throw error;
+  }
+},
+async getSlides(): Promise<Slide[]> {
+  const { data, error } = await supabase
+    .from('slides')
+    .select('*')
+    .order('created_at', { ascending: true }); // الـتـرتـيـب حـسـب وقـت الـصـبـان
+
+  if (error) throw error;
+  
+  return (data || []).map(s => ({
+    id: s.id,
+    url: s.url,
+    title: s.title,
+    posY: s.pos_y
+  }));
+},
   
   async deleteSlide(slideId: number | string) {
     console.log(`🟡 Suppression du slide avec ID: ${slideId}`);
@@ -191,25 +281,82 @@ async updatePortfolioItem(itemId: number | string, updatedData: Partial<Portfoli
 
     if (error) console.error("🔴 Erreur updatePortfolioItem:", error);
 },
+async uploadPortfolioFile(file: File): Promise<string | null> {
+    // 1. Thabbet elli el file mouch empty
+    if (!file) {
+        console.error("🔴 Erreur: Aucun fichier fourni.");
+        return null;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'ml_default'); // RAKKEZ HOUNI: 7ott el preset s7i7 direct
+
+    console.log("🟡 FormData check:", {
+        file_name: file.name,
+        file_size: file.size,
+        preset: 'votre_preset_name'
+    });
+    const resourceType = file.type.startsWith('video') ? 'video' : 'image';
+
+    try {
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+            { 
+                method: 'POST', 
+                // MA T-7OTTECH 'Content-Type' header! El browser taw y-rakkhou wa7dou
+                body: formData 
+            }
+        );
+
+        if (!response.ok) {
+            // Houni el 7all! Cloudinary i-9ollek el moshkla bed-dhabt fil JSON
+            const errorJson = await response.json();
+            console.error("🔴 Cloudinary API Error:", errorJson); 
+            return null;
+        }
+
+        const data = await response.json();
+        return data.secure_url; 
+    } catch (err) {
+        console.error("🔴 Fetch Error:", err);
+        return null;
+    }
+},
   
   // --- ZID EL Khedma el Jdida Houni ---
-  async addPortfolioItem(itemData: Omit<PortfolioItem, 'id'>): Promise<PortfolioItem | null> {
-    console.log("🟡 Ajout d'un nouvel item au portfolio...", itemData);
+ // --- PORTFOLIO ---
+async addPortfolioItem(itemData: Omit<PortfolioItem, 'id'>, file: File): Promise<PortfolioItem | null> {
+    console.log("🟡 Step 1: Envoi vers Cloudinary...");
     
+    // N-estannou el upload lel Cloudinary yerja3 (Lien URL)
+    const uploadedUrl = await this.uploadPortfolioFile(file);
+
+    if (!uploadedUrl) {
+        console.error("🔴 Erreur: Cloudinary n'a pas renvoyé d'URL.");
+        return null;
+    }
+
+    console.log("✅ Step 2: Lien Cloudinary reçu, insertion dans Supabase...", uploadedUrl);
+
+    // Taw n-insertiw el data mte3na m3a el URL elli jé mel Cloudinary
     const { data, error } = await supabase
-      .from('portfolio_items') // On utilise le nom de table correct
-      .insert(itemData)
-      .select()
-      .single(); 
+        .from('portfolio_items')
+        .insert({
+            ...itemData,
+            url: uploadedUrl, // Houni el lien l-jdid
+        })
+        .select()
+        .single();
 
     if (error) {
-      console.error("🔴 Erreur addPortfolioItem:", error);
-      return null;
+        console.error("🔴 Erreur lors de l'insertion DB:", error.message);
+        return null;
     }
-    
-    console.log("✅ Item ajouté avec succès:", data);
+
+    console.log("✅ Portfolio Item ajouté avec succès!");
     return data;
-  },
+},
 
   // --- Delete  ---
   async deletePortfolioItem(itemId: number | string) {
@@ -272,24 +419,5 @@ async logout() {
     if (error) throw error;
     // Nadhfou el local storage bech ma yo93od chay
     localStorage.removeItem('sb-api-auth-token'); 
-},
-  // UPLOAD with SIGNED URL (bypasses RLS)
- async uploadPortfolioFile(file: File): Promise<string | null> {
-    const fileName = `${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('portfolio') // Le nom de notre bucket
-      .upload(fileName, file);
-
-    if (error) {
-      console.error("Erreur d'upload Storage:", error);
-      return null;
-    }
-
-    // On récupère l'URL public du fichier uploadé
-    const { data: { publicUrl } } = supabase.storage
-      .from('portfolio')
-      .getPublicUrl(fileName);
-      
-    return publicUrl;
 }
-};
+}
